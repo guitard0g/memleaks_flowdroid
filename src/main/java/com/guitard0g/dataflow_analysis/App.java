@@ -1,24 +1,15 @@
 package com.guitard0g.dataflow_analysis;
 
-import fj.P;
 import org.xmlpull.v1.XmlPullParserException;
-import soot.Scene;
-import soot.SootClass;
-import soot.SootMethod;
-import soot.Unit;
-import soot.jimple.infoflow.aliasing.Aliasing;
+import soot.*;
 import soot.jimple.infoflow.android.InfoflowAndroidConfiguration;
 import soot.jimple.infoflow.android.SetupApplication;
-import soot.jimple.infoflow.results.DataFlowResult;
-import soot.jimple.infoflow.results.InfoflowResults;
 import soot.jimple.infoflow.solver.cfg.InfoflowCFG;
-import soot.jimple.infoflow.sourcesSinks.definitions.ISourceSinkDefinitionProvider;
 import soot.jimple.infoflow.sourcesSinks.definitions.SourceSinkDefinition;
 import soot.jimple.toolkits.callgraph.CallGraph;
 import soot.jimple.toolkits.callgraph.Edge;
 import soot.jimple.toolkits.callgraph.ReachableMethods;
 import soot.options.Options;
-import soot.toolkits.graph.DirectedGraph;
 
 import java.io.*;
 import java.util.*;
@@ -28,7 +19,7 @@ import static soot.SootClass.BODIES;
 public class App
 {
     public static void main(String[] args) throws IOException, XmlPullParserException {
-        List<String> resourcePairs = App.getResourcePairs();
+        ResourceQueryEngine queryEngine = App.getResourceInfo();
         String appPath = "/home/guitard0g/android/memleaks/android_resource_leaks/testApks/app-debug.apk";
         String androidPlatformPath = "/home/guitard0g/android/sdk/platforms";
 
@@ -58,13 +49,17 @@ public class App
         InfoflowCFG icfg = new InfoflowCFG();
 
 
+        AllocationTracker allocationTracker = new AllocationTracker();
         // Iterate over the callgraph
         for (Iterator<Edge> edgeIt = cg.iterator(); edgeIt.hasNext(); ) {
             Edge edge = edgeIt.next();
 
             SootMethod smSrc = edge.src();
-            Unit uSrc = edge.srcStmt();
             SootMethod smDest = edge.tgt();
+
+            allocationTracker.processEdge(edge, queryEngine);
+
+            Unit uSrc = edge.srcStmt();
             if (smSrc.getName().equals("getCameraInstance")) {
                 getCam = smSrc;
             } else if (smSrc.getName().equals("onCreate")) {
@@ -82,8 +77,9 @@ public class App
         System.out.println("test");
     }
 
-    private static List<String> getResourcePairs() {
-        List<String> list = new ArrayList<String>();
+    private static ResourceQueryEngine getResourceInfo() {
+        ResourceQueryEngine qe = new ResourceQueryEngine();
+
         File file = new File("pairs.txt");
         BufferedReader reader = null;
 
@@ -92,12 +88,17 @@ public class App
             String text = null;
 
             while ((text = reader.readLine()) != null) {
-                list.add(text);
+                try {
+                    AllocationPair rp = new AllocationPair(text);
+                    qe.pairMap.put(text, rp);
+                    qe.closeToOpenMap.put(rp.closeKey, rp.opener);
+                    qe.openToCloseMap.put(rp.openKey, rp.closer);
+                } catch (AllocationPair.InvalidResourceStringException e) {
+                    System.out.println(e);
+                }
             }
         } catch (FileNotFoundException e) {
             e.printStackTrace();
-
-
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
@@ -108,6 +109,6 @@ public class App
             } catch (IOException e) {
             }
         }
-        return list;
+        return qe;
     }
 }
