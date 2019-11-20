@@ -1,5 +1,6 @@
 package com.guitard0g.dataflow_analysis;
 
+import org.apache.log4j.BasicConfigurator;
 import org.xmlpull.v1.XmlPullParserException;
 import soot.*;
 import soot.jimple.infoflow.android.InfoflowAndroidConfiguration;
@@ -20,6 +21,9 @@ public class App
 {
     public static void main(String[] args) throws IOException, XmlPullParserException {
         ResourceQueryEngine queryEngine = App.getResourceInfo();
+        BasicConfigurator.configure();
+        //String appPath = "/home/yuchi/memleaks_flowdroid/app-debug.apk";
+        //String androidPlatformPath = "/home/yuchi/Android/Sdk/platforms";
         String appPath = "/home/guitard0g/android/memleaks/android_resource_leaks/testApks/app-debug.apk";
         String androidPlatformPath = "/home/guitard0g/android/sdk/platforms";
 
