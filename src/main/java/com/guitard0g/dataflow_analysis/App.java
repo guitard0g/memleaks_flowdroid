@@ -4,12 +4,9 @@ import org.xmlpull.v1.XmlPullParserException;
 import soot.*;
 import soot.jimple.Stmt;
 import soot.jimple.infoflow.InfoflowConfiguration;
-import soot.jimple.infoflow.android.InfoflowAndroidConfiguration;
 import soot.jimple.infoflow.android.SetupApplication;
 import soot.jimple.infoflow.solver.cfg.InfoflowCFG;
-import soot.jimple.infoflow.sourcesSinks.definitions.SourceSinkDefinition;
 import soot.jimple.toolkits.callgraph.CallGraph;
-import soot.jimple.toolkits.callgraph.ContextSensitiveCallGraph;
 import soot.jimple.toolkits.callgraph.Edge;
 import soot.jimple.toolkits.callgraph.ReachableMethods;
 import soot.options.Options;
@@ -23,82 +20,59 @@ public class App
 {
     public static void main(String[] args) throws IOException, XmlPullParserException {
         ResourceQueryEngine queryEngine = App.getResourceInfo();
+//        String appPath = "/home/guitard0g/android/memleaks/android_resource_leaks/testApks/blogLeaks.apk";
         String appPath = "/home/guitard0g/android/memleaks/android_resource_leaks/testApks/app-debug-bad.apk";
         String androidPlatformPath = "/home/guitard0g/android/sdk/platforms";
 
-        // Initialize Soot
+//        Scene.v().addBasicClass("android.support.v7.widget.ListPopupWindow$ResizePopupRunnable", BODIES);
+//        Scene.v().addBasicClass("android.os.AsyncTask", BODIES);
+//        Scene.v().addBasicClass("android.widget.AutoCompleteTextView", BODIES);
+//        Scene.v().addBasicClass("android.support.v4.widget.ContentLoadingProgressBar$1", BODIES);
+
+        // Initialize Soot and construct call graph
         SetupApplication analyzer = new SetupApplication(androidPlatformPath, appPath);
         analyzer.getConfig().setEnableReflection(true);
         analyzer.getConfig().setIgnoreFlowsInSystemPackages(false);
         analyzer.getConfig().setCallgraphAlgorithm(InfoflowConfiguration.CallgraphAlgorithm.CHA);
-
         analyzer.constructCallgraph();
-        CallGraph cg = Scene.v().getCallGraph();
+        analyzer.runInfoflow("SourcesAndSinks.txt");
 
-        HashSet<SootMethod> exitPoints = new HashSet<>();
-        Set<SootClass> entryPointClasses = analyzer.getEntrypointClasses();
-        AllocationTracker allocationTracker = new AllocationTracker(queryEngine);
-        // Iterate over the callgraph
-        for (Iterator<Edge> edgeIt = cg.iterator(); edgeIt.hasNext(); ) {
+
+        InfoflowCFG icfg = new InfoflowCFG();
+
+//        Options.v().set_ignore_resolving_levels(true);
+        System.out.println(Options.v().ignore_resolving_levels());
+        for (Iterator<Edge> edgeIt = Scene.v().getCallGraph().iterator(); edgeIt.hasNext(); ) {
             Edge edge = edgeIt.next();
-            allocationTracker.processEdge(edge);
+            Unit srcUnit = edge.srcUnit();
+            List<Unit> test = icfg.getSuccsOf(srcUnit);
+            List<Unit> test2 = icfg.getPredsOf(srcUnit);
 
-            Unit uSrc = edge.srcStmt();
             SootMethod smSrc = edge.src();
             SootMethod smDest = edge.tgt();
-            if (isExitPoint(smSrc, entryPointClasses)) {
-                exitPoints.add(smSrc);
+            try {
+                icfg.getOrCreateUnitGraph(smSrc);
+            } catch (RuntimeException e) {
+                continue;
             }
-            if (isExitPoint(smDest, entryPointClasses)) {
-                exitPoints.add(smDest);
+            try {
+                icfg.getOrCreateUnitGraph(smDest);
+            } catch (RuntimeException e) {
+                continue;
             }
         }
 
-        for (AllocationPair allocationPair: allocationTracker.getCompleted()) {
-            ArrayList<SootMethod> callingOpeners = allocationPair.getOpenerCallingMethods();
-            for (SootMethod caller: callingOpeners) {
-                Stmt dummySrcStmt = allocationTracker.getSrcStmt(caller);
-                if (dummySrcStmt != null) {
-                    for (SootMethod exitPoint: exitPoints) {
-                        Edge newEdge = new Edge(caller, dummySrcStmt, exitPoint);
-                        cg.addEdge(newEdge);
-                    }
-                }
-            }
 
+        // get callgraph and entrypoints for analysis
+        CallGraph cg = Scene.v().getCallGraph();
+        StaticUIObjectAnalyzer suob = new StaticUIObjectAnalyzer(cg);
+        List<SootField> test = suob.getStaticUIObjectFields();
+        Set<SootClass> entryPointClasses = analyzer.getEntrypointClasses();
 
-            for (SootMethod opener: callingOpeners) {
-                ArrayList<SootMethod> entryPoints = new ArrayList<>();
-                entryPoints.add(opener);
-                ReachableMethods rm = new ReachableMethods(cg, entryPoints);
-                rm.update();
-                boolean found = false;
-                for (SootMethod closer: allocationPair.getCloserCallingMethods()) {
-                    if (rm.contains(closer))
-                        found = true;
-                }
-                if (!found) {
-                    System.out.println("Potential system resource leak: " + opener);
-                }
-            }
-
-        }
-        for (SootMethod opener: allocationTracker.getNotCompleted()) {
-            System.out.println("Potential system resource leak: " + opener);
-        }
-    }
-
-    private static boolean isExitPoint(SootMethod m, Set<SootClass> entryPointClasses) {
-        if (!entryPointClasses.contains(m.getDeclaringClass())) {
-            return false;
-        }
-
-        String mName = m.getName();
-        if (mName.equals("onStop") || mName.equals("onPause") || mName.equals("onDestroy")) {
-            return true;
-        }
-
-        return false;
+        // run analysis
+        AllocationTracker allocationTracker = new AllocationTracker(queryEngine, cg, entryPointClasses);
+        allocationTracker.processCallGraph();
+        allocationTracker.reportLeaks();
     }
 
     private static ResourceQueryEngine getResourceInfo() {
@@ -135,4 +109,5 @@ public class App
         }
         return qe;
     }
+
 }
