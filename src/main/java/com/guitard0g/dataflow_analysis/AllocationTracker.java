@@ -101,6 +101,7 @@ public class AllocationTracker {
         for (Iterator<Edge> edgeIt = cg.iterator(); edgeIt.hasNext(); ) {
             Edge edge = edgeIt.next();
             processEdge(edge);
+            Unit x = edge.srcStmt();
 
             SootMethod smSrc = edge.src();
             SootMethod smDest = edge.tgt();

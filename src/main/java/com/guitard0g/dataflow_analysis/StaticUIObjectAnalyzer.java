@@ -16,8 +16,8 @@ public class StaticUIObjectAnalyzer {
     static String VIEW_CLASS_NAME = "android.view.View";
     private static HashSet<String> uiObjectNames = new HashSet<>(Arrays.asList(new String[]{ACTIVITY_CLASS_NAME, VIEW_CLASS_NAME}));
 
-    public StaticUIObjectAnalyzer(CallGraph cg) {
-        this.cg = cg;
+    public StaticUIObjectAnalyzer() {
+        this.cg = Scene.v().getCallGraph();
     }
 
     public List<SootField> getStaticUIObjectFields() {

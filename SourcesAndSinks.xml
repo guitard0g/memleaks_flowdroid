@@ -1,0 +1,56 @@
+<sinkSources>
+    <category id="NO_CATEGORY">
+<!--        <method signature="&lt;com.example.androidtest.Sources: java.lang.String sourceTest(com.example.androidtest.MyTestObject,int)&gt;">-->
+<!--            <base type="com.example.androidtest.Sources">-->
+<!--                <accessPath isSource="false" isSink="true" />-->
+<!--            </base>-->
+<!--            <return type="java.lang.String">-->
+<!--                <accessPath isSource="true" isSink="false" />-->
+<!--            </return>-->
+<!--            <param index="0" type="com.example.androidtest.MyTestObject">-->
+<!--                <accessPath isSource="false" isSink="true">-->
+<!--                    <pathElement type="SomeClassA" field="c" />-->
+<!--                    <pathElement type="java.lang.String" field="s" />-->
+<!--                </accessPath>-->
+<!--                <accessPath isSource="true" isSink="false">-->
+<!--                    <pathElement type="SomeClassB" field="d" />-->
+<!--                </accessPath>-->
+<!--            </param>-->
+<!--            <param index="1" type="int">-->
+<!--                <accessPath isSource="true" isSink="false" />-->
+<!--            </param>-->
+<!--        </method>-->
+<!--        <method signature="&lt;com.example.androidtest.Sinks: void sinkTest(double,double)&gt;">-->
+<!--            <param index="0" type="double">-->
+<!--                <accessPath isSource="false" isSink="true">-->
+<!--                    &lt;!&ndash; Wenn leer, dann primitiver Datentyp (int, double, String,...)&ndash;&gt;-->
+<!--                </accessPath>-->
+<!--            </param>-->
+<!--        </method>-->
+
+<!--        <method signature="&lt;android.app.Activity: android.view.View findViewById(int)&gt;">-->
+<!--            <return type="android.view.View">-->
+<!--                <accessPath isSource="true" isSink="false" />-->
+<!--            </return>-->
+<!--        </method>-->
+
+<!--        <field signature="&lt;com.nimbledroid.memoryleaks.MainActivity: android.view.View view&gt;">-->
+<!--            <accessPath isSource="true" isSink="false" >-->
+<!--            </accessPath>-->
+<!--        </field>-->
+
+        <method signature="&lt;android.app.Activity: android.view.View findViewById(int)&gt;">
+            <return type="android.view.View">
+                <accessPath isSource="true" isSink="false" />
+            </return>
+        </method>
+
+        <method signature="&lt;com.nimbledroid.memoryleaks.MainActivity: void sink(android.view.View)&gt;">
+            <param index="0" type="android.view.View">
+                <accessPath isSource="false" isSink="true">
+                </accessPath>
+            </param>
+        </method>
+
+    </category>
+</sinkSources>
