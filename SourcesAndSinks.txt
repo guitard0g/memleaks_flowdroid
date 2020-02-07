@@ -116,7 +116,7 @@
 <org.apache.xmlrpc.webserver.HttpServletRequestImpl: void parseParameters)> -> _SOURCE_
 <org.jsoup.parser.Parser: org.jsoup.nodes.Document parse(java.lang.String,java.lang.String)> -> _SOURCE_
 <javax.servlet.ServletRequestWrapper: java.lang.String getParameter(java.lang.String)> -> _SOURCE_
-    
+
 <org.apache.http.HttpResponse: org.apache.http.HttpEntity getEntity()> -> _SOURCE_
 <org.apache.http.util.EntityUtils: java.lang.String toString(org.apache.http.HttpEntity)> -> _SOURCE_
 <org.apache.http.HttpResponse: org.apache.http.StatusLine getStatusLine()> -> _SOURCE_
@@ -363,9 +363,9 @@
 <android.content.Context: android.content.Intent registerReceiver(android.content.BroadcastReceiver,android.content.IntentFilter,java.lang.String,android.os.Handler)> -> _SINK_
 
 <android.content.IntentFilter: void addAction(java.lang.String)> -> _SINK_
-<android.telephony.SmsManager: void sendTextMessage(java.lang.String,java.lang.String,java.lang.String,android.app.PendingIntent,android.app.PendingIntent)> android.permission.SEND_SMS -> _SINK_ 
-<android.telephony.SmsManager: void sendDataMessage(java.lang.String,java.lang.String,short,byte[],android.app.PendingIntent,android.app.PendingIntent)> android.permission.SEND_SMS -> _SINK_ 
-<android.telephony.SmsManager: void sendMultipartTextMessage(java.lang.String,java.lang.String,java.util.ArrayList,java.util.ArrayList,java.util.ArrayList)> android.permission.SEND_SMS -> _SINK_ 
+<android.telephony.SmsManager: void sendTextMessage(java.lang.String,java.lang.String,java.lang.String,android.app.PendingIntent,android.app.PendingIntent)> android.permission.SEND_SMS -> _SINK_
+<android.telephony.SmsManager: void sendDataMessage(java.lang.String,java.lang.String,short,byte[],android.app.PendingIntent,android.app.PendingIntent)> android.permission.SEND_SMS -> _SINK_
+<android.telephony.SmsManager: void sendMultipartTextMessage(java.lang.String,java.lang.String,java.util.ArrayList,java.util.ArrayList,java.util.ArrayList)> android.permission.SEND_SMS -> _SINK_
 <java.net.Socket: void connect(java.net.SocketAddress)> -> _SINK_
 <android.os.Handler: boolean sendMessage(android.os.Message)> -> _SINK_
 
@@ -456,12 +456,13 @@
 
 
 
-% <android.app.Activity: android.view.View findViewById(int)> -> _SOURCE_
 <android.database.Cursor: java.lang.String getString(int)> -> _SOURCE_
 <android.database.sqlite.SQLiteDatabase: android.database.Cursor query(android.net.Uri,java.lang.String[],java.lang.String,java.lang.String[],java.lang.String)> -> _SOURCE_
 <android.database.sqlite.SQLiteDatabase: android.database.Cursor query(android.net.Uri,java.lang.String[],java.lang.String,java.lang.String[],java.lang.String,android.os.CancellationSignal)> -> _SOURCE_
 
 <java.lang.ProcessBuilder: java.lang.Process start()> -> _SINK_
 
-<com.example.sampleleak.MainActivity: android.hardware.Camera getCameraInstance()> -> _SOURCE_
-<com.example.sampleleak.MainActivity: void onDestroy()> -> _SOURCE_
+<android.app.Activity: android.view.View findViewById(int)> -> _SOURCE_
+<com.nimbledroid.memoryleaks.MainActivity: void sink(android.view.View)> -> _SINK_
+
+
