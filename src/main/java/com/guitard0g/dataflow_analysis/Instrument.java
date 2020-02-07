@@ -5,10 +5,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import org.apache.log4j.BasicConfigurator;
 import soot.*;
 import soot.jimple.*;
-import soot.jimple.internal.JAssignStmt;
 import soot.options.Options;
 
 
@@ -22,10 +20,6 @@ public class Instrument {
         Options.v().set_output_format(Options.output_format_dex);
         Options.v().set_force_overwrite(true);
         Options.v().set_whole_program(true);
-
-        // resolve the PrintStream and System soot-classes
-        Scene.v().addBasicClass("java.io.PrintStream",SootClass.SIGNATURES);
-        Scene.v().addBasicClass("java.lang.System",SootClass.SIGNATURES);
 
         PackManager.v().getPack("wjtp").add(new Transform("wjtp.myInstrumenter", new SceneTransformer() {
             @Override
