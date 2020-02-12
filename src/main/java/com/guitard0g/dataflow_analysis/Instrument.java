@@ -11,8 +11,9 @@ import soot.options.Options;
 
 
 public class Instrument {
+    static HashMap<Integer, DummyCallInfo> keyToInfoDecoder = null;
 
-    public static void instrument(String sdkPath, String apkPath) {
+    public static HashMap<Integer, DummyCallInfo> instrument(String sdkPath, String apkPath) {
         //prefer Android APK files// -src-prec apk
         Options.v().set_src_prec(Options.src_prec_apk);
 
@@ -21,11 +22,14 @@ public class Instrument {
         Options.v().set_force_overwrite(true);
         Options.v().set_whole_program(true);
 
+
+
         PackManager.v().getPack("wjtp").add(new Transform("wjtp.myInstrumenter", new SceneTransformer() {
             @Override
             protected void internalTransform(String var1, Map<String, String> var2) {
                 HashMap<SootField, SootMethod> nullSetMethods = new HashMap<>();
                 HashMap<SootField, SootMethod> valSetMethods = new HashMap<>();
+                HashMap<Integer, DummyCallInfo> keyToInfo = new HashMap<>();
                 for(SootClass c: Scene.v().getApplicationClasses()) {
                     for (SootMethod m : c.getMethods()) {
                         if (!m.hasActiveBody()) {
@@ -44,15 +48,21 @@ public class Instrument {
 
                                 public void caseAssignStmt(AssignStmt stmt) {
                                     if (stmt.getLeftOp() instanceof StaticFieldRef) {
+                                        StaticFieldRef ref = (StaticFieldRef)stmt.getLeftOp();
+                                        SootField f = ref.getField();
+
                                         if (stmt.getRightOp() instanceof NullConstant) {
-                                            StaticFieldRef ref = (StaticFieldRef)stmt.getLeftOp();
-                                            SootField f = ref.getField();
-                                            SootMethod m;
+                                            SootMethod dummy;
                                             if (!nullSetMethods.containsKey(f)) {
-                                                m = createSetNullMethod(f);
-                                                nullSetMethods.put(f, m);
+                                                // calculate new key for next dummy call info object
+                                                int infoKey = nullSetMethods.size() + valSetMethods.size();
+
+                                                dummy = createSetNullMethod(f, infoKey);
+                                                nullSetMethods.put(f, dummy);
+
+                                                keyToInfo.put(infoKey, new DummyCallInfo(f, m));
                                             } else {
-                                                m = nullSetMethods.get(f);
+                                                dummy = nullSetMethods.get(f);
                                             }
 
                                             Local fieldRef = addFieldRef(b, f, "fieldTmpRef");
@@ -62,27 +72,30 @@ public class Instrument {
                                             units.insertBefore(
                                                     Jimple.v().newInvokeStmt(
                                                             Jimple.v().newStaticInvokeExpr(
-                                                                    m.makeRef(),
+                                                                    dummy.makeRef(),
                                                                     fieldRef
                                                             )
                                                     ), u);
 
                                         } else {
-                                            StaticFieldRef ref = (StaticFieldRef)stmt.getLeftOp();
-                                            SootField f = ref.getField();
-                                            SootMethod m;
+                                            SootMethod dummy;
                                             if (!valSetMethods.containsKey(f)) {
-                                                m = createReturnMethod(f, valSetMethods.size());
-                                                valSetMethods.put(f, m);
+                                                // calculate new key for next dummy call info object
+                                                int infoKey = nullSetMethods.size() + valSetMethods.size();
+
+                                                dummy = createReturnMethod(f, infoKey);
+                                                valSetMethods.put(f, dummy);
+
+                                                keyToInfo.put(infoKey, new DummyCallInfo(f, m));
                                             } else {
-                                                m = valSetMethods.get(f);
+                                                dummy = valSetMethods.get(f);
                                             }
 
                                             Local fieldRef = addFieldRef(b, f, "fieldTmpRef");
 
 
                                             ValueBox invocation = Jimple.v().newInvokeExprBox(Jimple.v().newStaticInvokeExpr(
-                                                    m.makeRef(),
+                                                    dummy.makeRef(),
                                                     fieldRef
                                             ));
 
@@ -104,6 +117,7 @@ public class Instrument {
                         }
                     }
                 }
+                keyToInfoDecoder = keyToInfo;
 
                 // add all new methods to their corresponding classes
                 for (SootMethod m: nullSetMethods.values()) {
@@ -122,6 +136,8 @@ public class Instrument {
         }));
 
         soot.Main.main(new String[]{"-android-jars", sdkPath, "-process-dir", apkPath});
+
+        return keyToInfoDecoder;
     }
 
     private static Local addFieldRef(Body body, SootField c, String name)
@@ -131,11 +147,11 @@ public class Instrument {
         return tmpRef;
     }
 
-    private static SootMethod createSetNullMethod(SootField f) {
+    private static SootMethod createSetNullMethod(SootField f, int key) {
         ArrayList<Type> params = new ArrayList<>();
         params.add(f.getType()); // one parameter of f's type
         Type voidType = VoidType.v();
-        String name = f.getName() + "__SET_NULL__";
+        String name = f.getName() + "__SET_NULL__" + key;
         int modifier = 10; // 1010
 
         SootMethod m = new SootMethod(name, params, voidType, modifier);
@@ -162,11 +178,11 @@ public class Instrument {
         return b;
     }
 
-    private static SootMethod createReturnMethod(SootField f, int index) {
+    private static SootMethod createReturnMethod(SootField f, int key) {
         ArrayList<Type> params = new ArrayList<>();
         params.add(f.getType()); // one parameter of f's type
 
-        String name = f.getName() + "__SET_VAL__" + index;
+        String name = f.getName() + "__SET_VAL__" + key;
         int modifier = 10; // 1010
 
         SootMethod m = new SootMethod(name, params, f.getType(), modifier);
@@ -191,5 +207,16 @@ public class Instrument {
         b.getUnits().addLast(Jimple.v().newReturnStmt(fieldRef));
 
         return b;
+    }
+
+}
+
+class DummyCallInfo {
+    public SootField f;
+    public SootMethod m;
+
+    public DummyCallInfo(SootField f, SootMethod m) {
+        this.f = f;
+        this.m = m;
     }
 }

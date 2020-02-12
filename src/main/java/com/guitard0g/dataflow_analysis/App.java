@@ -7,13 +7,16 @@ import org.apache.log4j.BasicConfigurator;
 import org.xmlpull.v1.XmlPullParserException;
 import polyglot.visit.DataFlow;
 import soot.*;
+import soot.jimple.Stmt;
 import soot.jimple.infoflow.InfoflowConfiguration;
 import soot.jimple.infoflow.android.SetupApplication;
+import soot.jimple.infoflow.results.AbstractResultSourceSinkInfo;
 import soot.jimple.infoflow.results.DataFlowResult;
 import soot.jimple.infoflow.results.InfoflowResults;
 import soot.jimple.toolkits.callgraph.CallGraph;
 import soot.jimple.toolkits.callgraph.Edge;
 
+import javax.xml.crypto.Data;
 import java.io.*;
 import java.util.*;
 
@@ -32,7 +35,7 @@ public class App
 
         BasicConfigurator.configure(); // configure logging
 
-        Instrument.instrument(androidPlatformPath, sourceApkPath);
+        HashMap<Integer, DummyCallInfo> dummyDecoder = Instrument.instrument(androidPlatformPath, sourceApkPath);
 
         // Initialize Soot and construct call graph
         String instrumentedApkPath = "./sootOutput/app-debug.apk";
@@ -43,10 +46,25 @@ public class App
 
 
 //        analyzer.getConfig().setSootIntegrationMode(InfoflowAndroidConfiguration.SootIntegrationMode.UseExistingCallgraph);
-        InfoflowResults results = analyzer.runInfoflow(genSourceSinkProvider());
+        CustomSourceSinkProvider ssp = genSourceSinkProvider();
+        InfoflowResults results = analyzer.runInfoflow(ssp);
+
+        HashSet<String> closedPaths = new HashSet<>();
         for(DataFlowResult res: results.getResultSet()) {
-            System.out.println(res);
+            displaySourceSinkResult(res, dummyDecoder);
+
+            SootMethod maybeClosed = getClosedMethod(res, dummyDecoder);
+            if (maybeClosed != null) {
+                closedPaths.add(maybeClosed.getSignature());
+            }
         }
+
+        for (SootMethod m: ssp.getSourceMethods()) {
+            if (!closedPaths.contains(m.getSignature())) {
+                displayLeakedField(m, dummyDecoder);
+            }
+        }
+
 
         /**
          * TODO: Check static variable names match for dataflow paths
@@ -54,6 +72,67 @@ public class App
          * Print out encapsulating function for any leak instructions
          */
         int x = 1;
+    }
+
+    private static SootMethod getClosedMethod(DataFlowResult res, HashMap<Integer, DummyCallInfo> decoder) {
+        int sourceSuffix = getIntSuffix(res.getSource());
+        int sinkSuffix = getIntSuffix(res.getSink());
+        DummyCallInfo source = decoder.get(sourceSuffix);
+        DummyCallInfo sink = decoder.get(sinkSuffix);
+
+        if (source.f != sink.f) {
+            // invalid result, different variables
+            return null;
+        } else {
+            return res.getSource().getStmt().getInvokeExpr().getMethod();
+        }
+    }
+
+    private static void displayLeakedField(SootMethod m, HashMap<Integer, DummyCallInfo> decoder) {
+        int sourceSuffix = getIntSuffix(m);
+        DummyCallInfo source = decoder.get(sourceSuffix);
+        System.out.println("PATH NOT CLOSED (POTENTIAL LEAK): ");
+        System.out.println("Variable: ");
+        System.out.println("\t" + source.f);
+        System.out.println("SOURCE: ");
+        System.out.println("\t" + source.m);
+    }
+
+    private static void displaySourceSinkResult(DataFlowResult res, HashMap<Integer, DummyCallInfo> decoder) {
+        int sourceSuffix = getIntSuffix(res.getSource());
+        int sinkSuffix = getIntSuffix(res.getSink());
+        DummyCallInfo source = decoder.get(sourceSuffix);
+        DummyCallInfo sink = decoder.get(sinkSuffix);
+
+        if (source.f != sink.f) {
+            // invalid result, different variables
+            return;
+        }
+
+        System.out.println("DATAFLOW PATH FOUND: ");
+        System.out.println("Variable: " + source.f);
+        System.out.println("SOURCE: ");
+        System.out.println("\t" + source.m);
+        System.out.println("SINK: ");
+        System.out.println("\t" + sink.m);
+    }
+
+    private static int getIntSuffix(AbstractResultSourceSinkInfo res) {
+        return getIntSuffix(res.getStmt().getInvokeExpr().getMethod());
+    }
+
+    private static int getIntSuffix(SootMethod m) {
+        String methodName = m.getName();
+        ArrayList<String> pieces = new ArrayList(Arrays.asList(methodName.split("__")));
+        String numString = pieces.get(pieces.size() - 1);
+
+        try {
+            return Integer.parseInt(numString);
+        } catch (NumberFormatException e) {
+            System.out.println("Could not parse method suffix: " + e);
+            System.exit(1);
+            return -1;
+        }
     }
 
 

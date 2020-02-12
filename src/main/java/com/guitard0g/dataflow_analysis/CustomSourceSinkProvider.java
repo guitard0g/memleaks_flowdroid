@@ -7,6 +7,7 @@ import soot.jimple.infoflow.data.AccessPath;
 import soot.jimple.infoflow.data.SootMethodAndClass;
 import soot.jimple.infoflow.sourcesSinks.definitions.*;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -16,11 +17,13 @@ public class CustomSourceSinkProvider implements ISourceSinkDefinitionProvider {
     private HashMap<String, ISourceSinkDefinition> sourcesAndSinks;
     private HashSet<ISourceSinkDefinition> sources;
     private HashSet<ISourceSinkDefinition> sinks;
+    private HashSet<SootMethod> sourceMethods;
 
     public CustomSourceSinkProvider() {
         sourcesAndSinks = new HashMap<>();
         sources = new HashSet<>();
         sinks = new HashSet<>();
+        sourceMethods = new HashSet<>();
     }
 
     public void addSourceMethod(SootMethod m) {
@@ -38,6 +41,7 @@ public class CustomSourceSinkProvider implements ISourceSinkDefinitionProvider {
                 MethodSourceSinkDefinition.CallType.MethodCall);
         sourcesAndSinks.put(m.getSignature(), def);
         sources.add(def);
+        sourceMethods.add(m);
     }
 
     /**
@@ -86,6 +90,10 @@ public class CustomSourceSinkProvider implements ISourceSinkDefinitionProvider {
         FieldSourceSinkDefinition def = new FieldSourceSinkDefinition(sig, aps);
         sourcesAndSinks.put(sig, def);
         sinks.add(def);
+    }
+
+    public HashSet<SootMethod> getSourceMethods() {
+        return sourceMethods;
     }
 
     public Set<ISourceSinkDefinition> getSources() {
