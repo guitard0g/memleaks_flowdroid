@@ -16,8 +16,9 @@ public class Instrument {
     public static HashMap<Integer, DummyCallInfo> instrument(String sdkPath, String apkPath) {
         //prefer Android APK files// -src-prec apk
         Options.v().set_src_prec(Options.src_prec_apk);
+        Options.v().set_process_multiple_dex(true);
+        Options.v().set_allow_phantom_refs(true);
 
-        //output as APK, too//-f J
         Options.v().set_output_format(Options.output_format_dex);
         Options.v().set_force_overwrite(true);
         Options.v().set_whole_program(true);

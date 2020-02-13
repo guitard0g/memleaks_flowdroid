@@ -10,11 +10,15 @@ import soot.*;
 import soot.jimple.Stmt;
 import soot.jimple.infoflow.InfoflowConfiguration;
 import soot.jimple.infoflow.android.SetupApplication;
+import soot.jimple.infoflow.android.callbacks.AbstractCallbackAnalyzer;
+import soot.jimple.infoflow.android.callbacks.DefaultCallbackAnalyzer;
 import soot.jimple.infoflow.results.AbstractResultSourceSinkInfo;
 import soot.jimple.infoflow.results.DataFlowResult;
 import soot.jimple.infoflow.results.InfoflowResults;
+import soot.jimple.infoflow.util.SystemClassHandler;
 import soot.jimple.toolkits.callgraph.CallGraph;
 import soot.jimple.toolkits.callgraph.Edge;
+import soot.options.Options;
 
 import javax.xml.crypto.Data;
 import java.io.*;
@@ -40,7 +44,6 @@ public class App
         // Initialize Soot and construct call graph
         String instrumentedApkPath = "./sootOutput/app-debug.apk";
         SetupApplication analyzer = new SetupApplication(androidPlatformPath, instrumentedApkPath);
-        analyzer.getConfig().setIgnoreFlowsInSystemPackages(false);
         analyzer.getConfig().setCallgraphAlgorithm(InfoflowConfiguration.CallgraphAlgorithm.CHA);
         analyzer.constructCallgraph();
 
