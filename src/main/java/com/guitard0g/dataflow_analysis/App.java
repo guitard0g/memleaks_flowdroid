@@ -1,27 +1,16 @@
 package com.guitard0g.dataflow_analysis;
 
 
-import fj.data.Array;
-
 import org.apache.log4j.BasicConfigurator;
-import org.xmlpull.v1.XmlPullParserException;
-import polyglot.visit.DataFlow;
 import soot.*;
-import soot.jimple.Stmt;
 import soot.jimple.infoflow.InfoflowConfiguration;
 import soot.jimple.infoflow.android.SetupApplication;
-import soot.jimple.infoflow.android.callbacks.AbstractCallbackAnalyzer;
-import soot.jimple.infoflow.android.callbacks.DefaultCallbackAnalyzer;
 import soot.jimple.infoflow.results.AbstractResultSourceSinkInfo;
 import soot.jimple.infoflow.results.DataFlowResult;
 import soot.jimple.infoflow.results.InfoflowResults;
-import soot.jimple.infoflow.util.SystemClassHandler;
 import soot.jimple.toolkits.callgraph.CallGraph;
 import soot.jimple.toolkits.callgraph.Edge;
-import soot.options.Options;
 
-import javax.xml.crypto.Data;
-import java.io.*;
 import java.util.*;
 
 public class App
@@ -35,6 +24,8 @@ public class App
             System.exit(1);
         }
         String sourceApkPath = args[0];
+        String [] apkFilePieces = sourceApkPath.split("/");
+        String filename = apkFilePieces[apkFilePieces.length - 1];
         String androidPlatformPath = args[1];
 
         BasicConfigurator.configure(); // configure logging
@@ -42,7 +33,7 @@ public class App
         HashMap<Integer, DummyCallInfo> dummyDecoder = Instrument.instrument(androidPlatformPath, sourceApkPath);
 
         // Initialize Soot and construct call graph
-        String instrumentedApkPath = "./sootOutput/app-debug.apk";
+        String instrumentedApkPath = "./sootOutput/" + filename;
         SetupApplication analyzer = new SetupApplication(androidPlatformPath, instrumentedApkPath);
         analyzer.getConfig().setCallgraphAlgorithm(InfoflowConfiguration.CallgraphAlgorithm.CHA);
         analyzer.constructCallgraph();
@@ -53,12 +44,14 @@ public class App
         InfoflowResults results = analyzer.runInfoflow(ssp);
 
         HashSet<String> closedPaths = new HashSet<>();
-        for(DataFlowResult res: results.getResultSet()) {
-            displaySourceSinkResult(res, dummyDecoder);
+        if (!results.isEmpty()) {
+            for(DataFlowResult res: results.getResultSet()) {
+                displaySourceSinkResult(res, dummyDecoder);
 
-            SootMethod maybeClosed = getClosedMethod(res, dummyDecoder);
-            if (maybeClosed != null) {
-                closedPaths.add(maybeClosed.getSignature());
+                SootMethod maybeClosed = getClosedMethod(res, dummyDecoder);
+                if (maybeClosed != null) {
+                    closedPaths.add(maybeClosed.getSignature());
+                }
             }
         }
 
