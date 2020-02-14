@@ -36,6 +36,7 @@ public class App
         String instrumentedApkPath = "./sootOutput/" + filename;
         SetupApplication analyzer = new SetupApplication(androidPlatformPath, instrumentedApkPath);
         analyzer.getConfig().setCallgraphAlgorithm(InfoflowConfiguration.CallgraphAlgorithm.CHA);
+        analyzer.getConfig().setOneComponentAtATime(true);
         analyzer.constructCallgraph();
 
 
