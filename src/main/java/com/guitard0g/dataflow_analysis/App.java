@@ -87,6 +87,9 @@ public class App
     private static void displayLeakedField(SootMethod m, HashMap<Integer, DummyCallInfo> decoder) {
         int sourceSuffix = getIntSuffix(m);
         DummyCallInfo source = decoder.get(sourceSuffix);
+        if (!source.f.getSignature().contains("View") && !source.f.getSignature().contains("Activity")) {
+            return;
+        }
         System.out.println("PATH NOT CLOSED (POTENTIAL LEAK): ");
         System.out.println("Variable: ");
         System.out.println("\t" + source.f);
