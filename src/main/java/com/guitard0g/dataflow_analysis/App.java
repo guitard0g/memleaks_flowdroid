@@ -4,6 +4,7 @@ package com.guitard0g.dataflow_analysis;
 import org.apache.log4j.BasicConfigurator;
 import soot.*;
 import soot.jimple.infoflow.InfoflowConfiguration;
+import soot.jimple.infoflow.android.InfoflowAndroidConfiguration;
 import soot.jimple.infoflow.android.SetupApplication;
 import soot.jimple.infoflow.results.AbstractResultSourceSinkInfo;
 import soot.jimple.infoflow.results.DataFlowResult;
@@ -36,11 +37,12 @@ public class App
         String instrumentedApkPath = "./sootOutput/" + filename;
         SetupApplication analyzer = new SetupApplication(androidPlatformPath, instrumentedApkPath);
         analyzer.getConfig().setCallgraphAlgorithm(InfoflowConfiguration.CallgraphAlgorithm.CHA);
-        analyzer.getConfig().setOneComponentAtATime(true);
         analyzer.constructCallgraph();
+        // Important to not repeat work in recreating the callgraph.
+        // This also prevents a bug where information is fetched twice and FlowDroid
+        //   fails due to finding duplicate classes.
+        analyzer.getConfig().setSootIntegrationMode(InfoflowAndroidConfiguration.SootIntegrationMode.UseExistingCallgraph);
 
-
-//        analyzer.getConfig().setSootIntegrationMode(InfoflowAndroidConfiguration.SootIntegrationMode.UseExistingCallgraph);
         CustomSourceSinkProvider ssp = genSourceSinkProvider();
         InfoflowResults results = analyzer.runInfoflow(ssp);
 
@@ -56,6 +58,7 @@ public class App
             }
         }
 
+        System.out.println("==========================(Potential Leaks)==============================");
         for (SootMethod m: ssp.getSourceMethods()) {
             if (!closedPaths.contains(m.getSignature())) {
                 displayLeakedField(m, dummyDecoder);

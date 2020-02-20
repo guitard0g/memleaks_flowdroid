@@ -1,12 +1,10 @@
 package com.guitard0g.dataflow_analysis;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
 
 import soot.*;
 import soot.jimple.*;
+import soot.jimple.internal.JimpleLocal;
 import soot.options.Options;
 
 
@@ -32,6 +30,8 @@ public class Instrument {
                 HashMap<SootField, SootMethod> nullSetMethods = new HashMap<>();
                 HashMap<SootField, SootMethod> valSetMethods = new HashMap<>();
                 HashMap<Integer, DummyCallInfo> keyToInfo = new HashMap<>();
+                HashSet<SootField> potentialFields = new HashSet<>();
+
                 for(SootClass c: Scene.v().getApplicationClasses()) {
                     for (SootMethod m : c.getMethods()) {
                         if (!m.hasActiveBody()) {
@@ -43,43 +43,30 @@ public class Instrument {
                         }
                         Body b = m.getActiveBody();
                         final PatchingChain units = b.getUnits();
+                        HashMap<JimpleLocal, Value> localAssignments = new HashMap<>();
+
                         //important to use snapshotIterator here
                         for(Iterator iter = units.snapshotIterator(); iter.hasNext();) {
                             final Unit u = (Unit)iter.next();
                             u.apply(new AbstractStmtSwitch() {
+                                public void caseIdentityStmt(IdentityStmt stmt) {
+                                    if (stmt.getLeftOp() instanceof JimpleLocal) {
+                                        // keep track of local values
+                                        localAssignments.put((JimpleLocal)stmt.getLeftOp(), stmt.getRightOp());
+                                    }
+                                }
 
                                 public void caseAssignStmt(AssignStmt stmt) {
-                                    if (stmt.getLeftOp() instanceof StaticFieldRef) {
+                                    if (stmt.getLeftOp() instanceof JimpleLocal) {
+                                        // keep track of local values
+                                        localAssignments.put((JimpleLocal)stmt.getLeftOp(), stmt.getRightOp());
+                                    } else if (stmt.getLeftOp() instanceof StaticFieldRef) {
                                         StaticFieldRef ref = (StaticFieldRef)stmt.getLeftOp();
                                         SootField f = ref.getField();
 
-                                        if (stmt.getRightOp() instanceof NullConstant) {
-                                            SootMethod dummy;
-                                            if (!nullSetMethods.containsKey(f)) {
-                                                // calculate new key for next dummy call info object
-                                                int infoKey = nullSetMethods.size() + valSetMethods.size();
+                                        if (isInterestingAssignment(stmt, localAssignments)) {
+                                            potentialFields.add(f);
 
-                                                dummy = createSetNullMethod(f, infoKey);
-                                                nullSetMethods.put(f, dummy);
-
-                                                keyToInfo.put(infoKey, new DummyCallInfo(f, m));
-                                            } else {
-                                                dummy = nullSetMethods.get(f);
-                                            }
-
-                                            Local fieldRef = addFieldRef(b, f, "fieldTmpRef");
-
-                                            units.insertBefore(Jimple.v().newAssignStmt(fieldRef, Jimple.v().newStaticFieldRef(f.makeRef())), u);
-
-                                            units.insertBefore(
-                                                    Jimple.v().newInvokeStmt(
-                                                            Jimple.v().newStaticInvokeExpr(
-                                                                    dummy.makeRef(),
-                                                                    fieldRef
-                                                            )
-                                                    ), u);
-
-                                        } else {
                                             SootMethod dummy;
                                             if (!valSetMethods.containsKey(f)) {
                                                 // calculate new key for next dummy call info object
@@ -119,6 +106,62 @@ public class Instrument {
                         }
                     }
                 }
+
+                for(SootClass c: Scene.v().getApplicationClasses()) {
+                    for (SootMethod m : c.getMethods()) {
+                        if (!m.hasActiveBody()) {
+                            try {
+                                m.retrieveActiveBody();
+                            } catch (Exception ignore) {
+                                continue;
+                            }
+                        }
+                        Body b = m.getActiveBody();
+                        final PatchingChain units = b.getUnits();
+
+                        //important to use snapshotIterator here
+                        for(Iterator iter = units.snapshotIterator(); iter.hasNext();) {
+                            final Unit u = (Unit)iter.next();
+                            u.apply(new AbstractStmtSwitch() {
+                                public void caseAssignStmt(AssignStmt stmt) {
+                                    if (stmt.getLeftOp() instanceof StaticFieldRef) {
+                                        StaticFieldRef ref = (StaticFieldRef)stmt.getLeftOp();
+                                        SootField f = ref.getField();
+
+                                        if ((isInterestingField(f) || potentialFields.contains(f)) &&
+                                                stmt.getRightOp() instanceof NullConstant) {
+                                            SootMethod dummy;
+                                            if (!nullSetMethods.containsKey(f)) {
+                                                // calculate new key for next dummy call info object
+                                                int infoKey = nullSetMethods.size() + valSetMethods.size();
+
+                                                dummy = createSetNullMethod(f, infoKey);
+                                                nullSetMethods.put(f, dummy);
+
+                                                keyToInfo.put(infoKey, new DummyCallInfo(f, m));
+                                            } else {
+                                                dummy = nullSetMethods.get(f);
+                                            }
+
+                                            Local fieldRef = addFieldRef(b, f, "fieldTmpRef");
+
+                                            units.insertBefore(Jimple.v().newAssignStmt(fieldRef, Jimple.v().newStaticFieldRef(f.makeRef())), u);
+
+                                            units.insertBefore(
+                                                    Jimple.v().newInvokeStmt(
+                                                            Jimple.v().newStaticInvokeExpr(
+                                                                    dummy.makeRef(),
+                                                                    fieldRef
+                                                            )
+                                                    ), u);
+
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                    }
+                }
                 keyToInfoDecoder = keyToInfo;
 
                 // add all new methods to their corresponding classes
@@ -141,6 +184,7 @@ public class Instrument {
 
         return keyToInfoDecoder;
     }
+
 
     private static Local addFieldRef(Body body, SootField c, String name)
     {
@@ -209,6 +253,64 @@ public class Instrument {
         b.getUnits().addLast(Jimple.v().newReturnStmt(fieldRef));
 
         return b;
+    }
+
+
+    private static boolean isInterestingField(SootField f) {
+        if (!(f.getType() instanceof RefType)) {
+            return false;
+        }
+
+        SootClass cls = ((RefType) f.getType()).getSootClass();
+
+        return isInterestingClass(cls);
+    }
+
+    private static boolean isInterestingAssignment(AssignStmt stmt, HashMap<JimpleLocal, Value> assignments) {
+        if(!(stmt.getRightOp() instanceof JimpleLocal)) {
+            return false;
+        }
+        JimpleLocal local = (JimpleLocal)stmt.getRightOp();
+        if (!assignments.containsKey(local)) {
+            return false;
+        }
+        Value value = assignments.get(local);
+
+        if (!(value.getType() instanceof RefType)) {
+            return false;
+        }
+        RefType ref = (RefType)value.getType();
+        if (isInterestingClass(ref.getSootClass())) {
+            return true;
+        }
+
+        if (!ref.getSootClass().hasOuterClass()) {
+            return false;
+        }
+
+        return isInterestingClass(ref.getSootClass().getOuterClass());
+    }
+
+    private static boolean isInterestingClass(SootClass cls) {
+        if (isViewOrActivity(cls))
+            return true;
+
+        while (cls.hasSuperclass()) {
+            cls = cls.getSuperclass();
+            if (isViewOrActivity(cls))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static boolean isViewOrActivity(SootClass cls) {
+        String name = cls.getName();
+        if ( name.equals("android.view.View") ||
+                name.equals("android.app.Activity")) {
+            return true;
+        }
+        return false;
     }
 
 }
