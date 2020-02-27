@@ -34,6 +34,12 @@ public class Instrument {
 
                 for(SootClass c: Scene.v().getApplicationClasses()) {
                     for (SootMethod m : c.getMethods()) {
+                        if (m.getName().equals("<clinit>")) {
+                            // Continue if this is a class init because it is
+                            // not user written so no allocation is being done
+                            continue;
+                        }
+
                         if (!m.hasActiveBody()) {
                             try {
                                 m.retrieveActiveBody();
@@ -64,7 +70,7 @@ public class Instrument {
                                         StaticFieldRef ref = (StaticFieldRef)stmt.getLeftOp();
                                         SootField f = ref.getField();
 
-                                        if (isInterestingAssignment(stmt, localAssignments)) {
+                                        if (isInterestingAssignment(m, stmt, localAssignments)) {
                                             potentialFields.add(f);
 
                                             SootMethod dummy;
@@ -266,7 +272,7 @@ public class Instrument {
         return isInterestingClass(cls);
     }
 
-    private static boolean isInterestingAssignment(AssignStmt stmt, HashMap<JimpleLocal, Value> assignments) {
+    private static boolean isInterestingAssignment(SootMethod m, AssignStmt stmt, HashMap<JimpleLocal, Value> assignments) {
         if(!(stmt.getRightOp() instanceof JimpleLocal)) {
             return false;
         }
@@ -284,7 +290,7 @@ public class Instrument {
             return true;
         }
 
-        if (!ref.getSootClass().hasOuterClass()) {
+        if (m.isStatic() || !ref.getSootClass().hasOuterClass()) {
             return false;
         }
 
