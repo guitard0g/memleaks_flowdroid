@@ -65,6 +65,10 @@ public class App
             }
         }
 
+        CustomSourceSinkProvider resourceSsp = genResourceSourceSinkProvider();
+        InfoflowResults resourceResults = analyzer.runInfoflow(resourceSsp);
+
+
 
         /**
          * TODO: Check static variable names match for dataflow paths
@@ -154,6 +158,22 @@ public class App
         return ssProvider;
     }
 
+    private static CustomSourceSinkProvider genResourceSourceSinkProvider() {
+        CustomSourceSinkProvider ssProvider = new CustomSourceSinkProvider();
+
+        ArrayList<SootMethod> sources = getResourceSourceMethods();
+        for (SootMethod source: sources) {
+            ssProvider.addSourceMethod(source);
+        }
+
+        ArrayList<SootMethod> sinks = getResourceSinkMethods();
+        for (SootMethod sink: sinks) {
+            ssProvider.addSinkMethod(sink);
+        }
+
+        return ssProvider;
+    }
+
     private static ArrayList<SootMethod> getNullSetSinkMethods() {
         CallGraph cg = Scene.v().getCallGraph();
         ArrayList<SootMethod> nullSetMethods = new ArrayList<>();
@@ -176,6 +196,34 @@ public class App
             Edge e = it.next();
 
             if (e.tgt().getName().contains("__SET_VAL__")) {
+                setMethods.add(e.tgt());
+            }
+        }
+        return setMethods;
+    }
+
+    private static ArrayList<SootMethod> getResourceSourceMethods() {
+        CallGraph cg = Scene.v().getCallGraph();
+        ArrayList<SootMethod> setMethods = new ArrayList<>();
+
+        for (Iterator<Edge> it = cg.iterator(); it.hasNext(); ) {
+            Edge e = it.next();
+
+            if (e.tgt().getName().contains("__OPEN_RES__")) {
+                setMethods.add(e.tgt());
+            }
+        }
+        return setMethods;
+    }
+
+    private static ArrayList<SootMethod> getResourceSinkMethods() {
+        CallGraph cg = Scene.v().getCallGraph();
+        ArrayList<SootMethod> setMethods = new ArrayList<>();
+
+        for (Iterator<Edge> it = cg.iterator(); it.hasNext(); ) {
+            Edge e = it.next();
+
+            if (e.tgt().getName().contains("__CLOSE_RES__")) {
                 setMethods.add(e.tgt());
             }
         }
