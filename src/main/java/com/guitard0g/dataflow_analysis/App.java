@@ -1,6 +1,7 @@
 package com.guitard0g.dataflow_analysis;
 
 
+import fj.P;
 import org.apache.log4j.BasicConfigurator;
 import soot.*;
 import soot.jimple.infoflow.InfoflowConfiguration;
@@ -58,16 +59,16 @@ public class App
             }
         }
 
+        CustomSourceSinkProvider resourceSsp = genResourceSourceSinkProvider();
+        InfoflowResults resourceResults = analyzer.runInfoflow(resourceSsp);
+
+
         System.out.println("==========================(Potential Leaks)==============================");
         for (SootMethod m: ssp.getSourceMethods()) {
             if (!closedPaths.contains(m.getSignature())) {
                 displayLeakedField(m, dummyDecoder);
             }
         }
-
-        CustomSourceSinkProvider resourceSsp = genResourceSourceSinkProvider();
-        InfoflowResults resourceResults = analyzer.runInfoflow(resourceSsp);
-
 
 
         /**
@@ -103,6 +104,43 @@ public class App
         System.out.println("\t" + source.f);
         System.out.println("SOURCE: ");
         System.out.println("\t" + source.m);
+        ArrayList<SootMethod> path = getMethodPath(source.m);
+        if (path == null) {
+            System.out.println("NO PATH TO SOURCE METHOD FOUND.");
+            return;
+        } else {
+            System.out.println("PATH TO SOURCE METHOD: ");
+            int i = 0;
+            for (SootMethod step: path) {
+                System.out.print("\t" + i + ": ");
+                System.out.println(step);
+                i++;
+            }
+        }
+    }
+
+    private static ArrayList<SootMethod> getMethodPath(SootMethod m) {
+        CallGraph cg = Scene.v().getCallGraph();
+        // BFS to find SootMethod m
+        Set<SootMethod> seen = new HashSet<>();
+        Queue<PathBuilder> q = new LinkedList<>();
+        for(SootMethod entryPoint: Scene.v().getEntryPoints()) {
+            q.add(new PathBuilder(entryPoint, new ArrayList<SootMethod>()));
+        }
+
+        while (!q.isEmpty()) {
+            PathBuilder next = q.remove();
+            if (next.m.getSignature().equals(m.getSignature())) {
+                return next.path;
+            }
+            for (Iterator<Edge> it = cg.edgesOutOf(next.m); it.hasNext(); ) {
+                Edge e = it.next();
+
+                q.add(new PathBuilder(e.tgt(), next.path));
+            }
+        }
+
+        return null;
     }
 
     private static void displaySourceSinkResult(DataFlowResult res, HashMap<Integer, DummyCallInfo> decoder) {
@@ -228,6 +266,17 @@ public class App
             }
         }
         return setMethods;
+    }
+}
+
+class PathBuilder {
+    public ArrayList<SootMethod> path;
+    public SootMethod m;
+
+    public PathBuilder(SootMethod m, ArrayList<SootMethod> leadingPath) {
+        this.path = new ArrayList<>(leadingPath);
+        this.path.add(m);
+        this.m = m;
     }
 }
 
