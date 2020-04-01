@@ -3,6 +3,9 @@ package com.guitard0g.dataflow_analysis;
 
 import fj.P;
 import org.apache.log4j.BasicConfigurator;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.apache.log4j.config.PropertySetter;
 import soot.*;
 import soot.jimple.infoflow.InfoflowConfiguration;
 import soot.jimple.infoflow.android.InfoflowAndroidConfiguration;
@@ -30,7 +33,9 @@ public class App
         String filename = apkFilePieces[apkFilePieces.length - 1];
         String androidPlatformPath = args[1];
 
+
         BasicConfigurator.configure(); // configure logging
+        Logger.getRootLogger().setLevel(Level.OFF);
 
         HashMap<Integer, DummyCallInfo> dummyDecoder = Instrument.instrument(androidPlatformPath, sourceApkPath);
 
