@@ -124,7 +124,7 @@ public class App
         }
     }
 
-    private static ArrayList<SootMethod> getMethodPath(SootMethod m) {
+    public static ArrayList<SootMethod> getMethodPath(SootMethod m) {
         CallGraph cg = Scene.v().getCallGraph();
         // BFS to find SootMethod m
         Set<SootMethod> seen = new HashSet<>();
@@ -135,13 +135,15 @@ public class App
 
         while (!q.isEmpty()) {
             PathBuilder next = q.remove();
+            seen.add(next.m);
             if (next.m.getSignature().equals(m.getSignature())) {
                 return next.path;
             }
             for (Iterator<Edge> it = cg.edgesOutOf(next.m); it.hasNext(); ) {
                 Edge e = it.next();
 
-                q.add(new PathBuilder(e.tgt(), next.path));
+                if (!seen.contains(e.tgt()))
+                    q.add(new PathBuilder(e.tgt(), next.path));
             }
         }
 

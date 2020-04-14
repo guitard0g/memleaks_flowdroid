@@ -1,9 +1,11 @@
 package com.guitard0g.dataflow_analysis;
 
 import java.util.*;
+import java.util.function.Function;
 
 import soot.*;
 import soot.jimple.*;
+import soot.jimple.internal.JInvokeStmt;
 import soot.jimple.internal.JVirtualInvokeExpr;
 import soot.jimple.internal.JimpleLocal;
 import soot.options.Options;
@@ -12,9 +14,9 @@ import soot.options.Options;
 public class Instrument {
     static HashMap<Integer, DummyCallInfo> keyToInfoDecoder = null;
 
-    static HashSet<String> openers = new HashSet<>(Arrays.asList(new String[]{"start", "request", "lock", "open", "register", "acquire", "vibrate", "enable"}));
-    static HashSet<String> closers = new HashSet<>(Arrays.asList(new String[]{"end","abandon","cancel","clear","close","disable","finish","recycle","release","remove","stop","unload","unlock","unmount","unregister"}));
-
+    static final HashSet<String> openers = new HashSet<>(Arrays.asList(new String[]{"start", "request", "lock", "open", "register", "acquire", "vibrate", "enable"}));
+    static final HashSet<String> closers = new HashSet<>(Arrays.asList(new String[]{"end","abandon","cancel","clear","close","disable","finish","recycle","release","remove","stop","unload","unlock","unmount","unregister"}));
+    static HashSet<InvokeStmt> seenTaskInvokes = new HashSet<>();
 
     public static HashMap<Integer, DummyCallInfo> instrument(String sdkPath, String apkPath) {
         //prefer Android APK files// -src-prec apk
@@ -33,6 +35,7 @@ public class Instrument {
 
                 analyzeOpeners(data);
                 analyzeClosers(data);
+                analyzeThreadWork(data);
 
                 keyToInfoDecoder = data.keyToInfo;
 
@@ -57,6 +60,11 @@ public class Instrument {
                     m.setDeclared(false); // clear declared
                     c.addMethod(m); // add method to class
                 }
+
+                for (SootMethod m: data.resourceCloses) {
+                    Body b = m.getActiveBody();
+                    b.validate();
+                }
             }
 
 
@@ -65,6 +73,65 @@ public class Instrument {
         soot.Main.main(new String[]{"-android-jars", sdkPath, "-process-dir", apkPath});
 
         return keyToInfoDecoder;
+    }
+
+    public static void analyzeThreadWork(InstrumenterData data) {
+        for(SootClass c: Scene.v().getApplicationClasses()) {
+            for (SootMethod m : c.getMethods()) {
+                CurrentOpenerMethodData mData;
+                try {
+                    mData = new CurrentOpenerMethodData(m);
+                } catch (MalformedMethodException e) {
+                    continue;
+                }
+
+                //important to use snapshotIterator here
+                for(Iterator iter = mData.units.snapshotIterator(); iter.hasNext();) {
+                    final Unit u = (Unit)iter.next();
+
+                    u.apply(new AbstractStmtSwitch() {
+                        public void caseInvokeStmt(InvokeStmt stmt) {
+                            caseInvokeAsyncTask(stmt, mData, Instrument::isAsyncTask, "AsyncTask");
+                            caseInvokeAsyncTask(stmt, mData, Instrument::isThreadOrTimerTask, "ThreadTask/TimerTask");
+                            caseInvokeAsyncTask(stmt, mData, Instrument::isRunnable, "Runnable");
+                        }
+                    });
+                }
+            }
+        }
+    }
+
+    public static void caseInvokeAsyncTask(InvokeStmt stmt,
+                                           CurrentOpenerMethodData mData,
+                                           Function<SootClass, Boolean> testFunc,
+                                           String objectType) {
+        if(!isInterestingClass(mData.method.getDeclaringClass(), Instrument::isViewOrActivity)
+                || isLibraryClass(mData.method.getDeclaringClass())
+        ) {
+            return;
+        }
+        if (isInterestingClass(stmt.getInvokeExpr().getMethod().getDeclaringClass(), testFunc) &&
+                stmt.getInvokeExpr().getMethod().getName().equals("<init>")) {
+            System.out.println("==========================(" + objectType + ")==============================");
+            System.out.println(objectType + " DECLARED INSIDE UI OBJECT (POTENTIAL LEAK): ");
+            System.out.println("Bytecode instruction: ");
+            System.out.println("\t" + stmt);
+            System.out.println("SOURCE: ");
+            System.out.println("\t" + mData.method);
+            ArrayList<SootMethod> path = App.getMethodPath(mData.method);
+            if (path == null) {
+                System.out.println("NO PATH TO SOURCE METHOD FOUND.");
+                return;
+            } else {
+                System.out.println("PATH TO SOURCE METHOD: ");
+                int i = 0;
+                for (SootMethod step: path) {
+                    System.out.print("\t" + i + ": ");
+                    System.out.println(step);
+                    i++;
+                }
+            }
+        }
     }
 
     public static void analyzeOpeners(InstrumenterData data) {
@@ -408,6 +475,14 @@ public class Instrument {
         return mDummy;
     }
 
+    private static boolean isLibraryClass(SootClass cls) {
+        if(cls.getName().startsWith("android") ||
+                cls.getName().startsWith("java")) {
+            return true;
+        }
+        return false;
+    }
+
     private static boolean isInterestingField(SootField f) {
         if (!(f.getType() instanceof RefType)) {
             return false;
@@ -415,7 +490,7 @@ public class Instrument {
 
         SootClass cls = ((RefType) f.getType()).getSootClass();
 
-        return isInterestingClass(cls);
+        return isInterestingClass(cls, Instrument::isViewOrActivity);
     }
 
     private static boolean isInterestingAssignment(SootMethod m, AssignStmt stmt, HashMap<JimpleLocal, Value> assignments) {
@@ -432,7 +507,7 @@ public class Instrument {
             return false;
         }
         RefType ref = (RefType)value.getType();
-        if (isInterestingClass(ref.getSootClass())) {
+        if (isInterestingClass(ref.getSootClass(), Instrument::isViewOrActivity)) {
             return true;
         }
 
@@ -440,16 +515,16 @@ public class Instrument {
             return false;
         }
 
-        return isInterestingClass(ref.getSootClass().getOuterClass());
+        return isInterestingClass(ref.getSootClass().getOuterClass(), Instrument::isViewOrActivity);
     }
 
-    private static boolean isInterestingClass(SootClass cls) {
-        if (isViewOrActivity(cls))
+    private static boolean isInterestingClass(SootClass cls, Function<SootClass, Boolean> isInterestingFunc) {
+        if (isInterestingFunc.apply(cls))
             return true;
 
         while (cls.hasSuperclass()) {
             cls = cls.getSuperclass();
-            if (isViewOrActivity(cls))
+            if (isInterestingFunc.apply(cls))
                 return true;
         }
 
@@ -460,6 +535,39 @@ public class Instrument {
         String name = cls.getName();
         if ( name.equals("android.view.View") ||
                 name.equals("android.app.Activity")) {
+            return true;
+        }
+        return false;
+    }
+
+    private static boolean isAsyncTask(SootClass cls) {
+        String name = cls.getName();
+        if ( name.equals("android.os.AsyncTask")) {
+            return true;
+        }
+        return false;
+    }
+
+    private static boolean isRunnable(SootClass cls) {
+        String name = cls.getName();
+        if ( name.equals("java.lang.Runnable")) {
+            return true;
+        }
+        return false;
+    }
+
+    private static boolean isHandler(SootClass cls) {
+        String name = cls.getName();
+        if ( name.equals("android.os.Handler")) {
+            return true;
+        }
+        return false;
+    }
+
+    private static boolean isThreadOrTimerTask(SootClass cls) {
+        String name = cls.getName();
+        if ( name.equals("java.lang.Thread") ||
+                name.equals("java.util.TimerTask")) {
             return true;
         }
         return false;
