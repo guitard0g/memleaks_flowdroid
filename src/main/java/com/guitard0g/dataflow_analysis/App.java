@@ -67,11 +67,29 @@ public class App
         CustomSourceSinkProvider resourceSsp = genResourceSourceSinkProvider();
         InfoflowResults resourceResults = analyzer.runInfoflow(resourceSsp);
 
+        HashSet<String> closedResourcePaths = new HashSet<>();
+        if (!results.isEmpty()) {
+            for(DataFlowResult res: resourceResults.getResultSet()) {
+                displaySourceSinkResult(res, dummyDecoder);
+
+                SootMethod maybeClosed = getClosedMethod(res, dummyDecoder);
+                if (maybeClosed != null) {
+                    closedResourcePaths.add(maybeClosed.getSignature());
+                }
+            }
+        }
 
         System.out.println("==========================(Potential Leaks)==============================");
         for (SootMethod m: ssp.getSourceMethods()) {
             if (!closedPaths.contains(m.getSignature())) {
                 displayLeakedField(m, dummyDecoder);
+            }
+        }
+
+        System.out.println("==========================(Resources)==============================");
+        for (SootMethod m: resourceSsp.getSourceMethods()) {
+            if (!closedResourcePaths.contains(m.getSignature())) {
+                displayLeakedResource(m, dummyDecoder);
             }
         }
 
@@ -95,6 +113,27 @@ public class App
             return null;
         } else {
             return res.getSource().getStmt().getInvokeExpr().getMethod();
+        }
+    }
+
+    private static void displayLeakedResource(SootMethod m, HashMap<Integer, DummyCallInfo> decoder) {
+        int sourceSuffix = getIntSuffix(m);
+        DummyCallInfo source = decoder.get(sourceSuffix);
+        System.out.println("PATH NOT CLOSED (POTENTIAL LEAK): ");
+        System.out.println("SOURCE: ");
+        System.out.println("\t" + source.resOpen);
+        ArrayList<SootMethod> path = getMethodPath(source.m);
+        if (path == null) {
+            System.out.println("NO PATH TO SOURCE METHOD FOUND.");
+            return;
+        } else {
+            System.out.println("PATH TO SOURCE METHOD: ");
+            int i = 0;
+            for (SootMethod step: path) {
+                System.out.print("\t" + i + ": ");
+                System.out.println(step);
+                i++;
+            }
         }
     }
 

@@ -16,6 +16,7 @@ public class Instrument {
 
     static final HashSet<String> openers = new HashSet<>(Arrays.asList(new String[]{"start", "request", "lock", "open", "register", "acquire", "vibrate", "enable"}));
     static final HashSet<String> closers = new HashSet<>(Arrays.asList(new String[]{"end","abandon","cancel","clear","close","disable","finish","recycle","release","remove","stop","unload","unlock","unmount","unregister"}));
+    static final HashSet<String> resClasses = new HashSet<>(Arrays.asList(new String[]{"AudioManager","AudioRecorder","MediaPlayer","Camera","SensorManager","LocationManager","PowerManager.WakeLock","WifiManager.WifiLock","WifiManager"}));
     static HashSet<InvokeStmt> seenTaskInvokes = new HashSet<>();
 
     public static HashMap<Integer, DummyCallInfo> instrument(String sdkPath, String apkPath) {
@@ -107,6 +108,7 @@ public class Instrument {
                                            String objectType) {
         if(!isInterestingClass(mData.method.getDeclaringClass(), Instrument::isViewOrActivity)
                 || isLibraryClass(mData.method.getDeclaringClass())
+                || stmt.getInvokeExpr().getMethod().getDeclaringClass().isStatic()
         ) {
             return;
         }
@@ -207,7 +209,7 @@ public class Instrument {
                 dummy = createResourceReturnMethod((JimpleLocal)stmt.getLeftOp(), mData.method, infoKey);
                 data.resourceOpens.add(dummy);
 
-                data.keyToInfo.put(infoKey, new DummyCallInfo(null, mData.method));
+                data.keyToInfo.put(infoKey, new DummyCallInfo(stmt.getInvokeExpr().getMethod(), mData.method));
 
 
                 // take our original ref and replace it with our new method invocation return val
@@ -291,7 +293,7 @@ public class Instrument {
             dummy = createResourceClearMethod(iexpr.getBase(), mData.method, infoKey);
             data.resourceCloses.add(dummy);
 
-            data.keyToInfo.put(infoKey, new DummyCallInfo(null, mData.method));
+            data.keyToInfo.put(infoKey, new DummyCallInfo(stmt.getInvokeExpr().getMethod(), mData.method));
 
 
             Value invocation = Jimple.v().newStaticInvokeExpr(
@@ -573,9 +575,20 @@ public class Instrument {
         return false;
     }
 
+    private static boolean isResourceClass(SootClass cls) {
+        if (resClasses.contains(cls.getName()))
+            return true;
+        for (String resClass: resClasses) {
+            if (cls.getJavaStyleName().contains(resClass))
+                return true;
+        }
+        return false;
+    }
+
     private static boolean isCloser(InvokeExpr iexpr) {
         if (iexpr.getMethod().getDeclaringClass().isApplicationClass() ||
-                !iexpr.getMethod().getReturnType().toString().startsWith("android")) {
+                !iexpr.getMethod().getReturnType().toString().startsWith("android") ||
+                !isResourceClass(iexpr.getMethod().getDeclaringClass())) {
             return false;
         }
 
@@ -591,7 +604,8 @@ public class Instrument {
 
     private static boolean isOpener(InvokeExpr iexpr) {
         if (iexpr.getMethod().getDeclaringClass().isApplicationClass() ||
-                !iexpr.getMethod().getReturnType().toString().startsWith("android")) {
+                !iexpr.getMethod().getReturnType().toString().startsWith("android") ||
+                !isResourceClass(iexpr.getMethod().getDeclaringClass())) {
             return false;
         }
 
@@ -609,10 +623,18 @@ public class Instrument {
 class DummyCallInfo {
     public SootField f;
     public SootMethod m;
+    public SootMethod resOpen;
 
     public DummyCallInfo(SootField f, SootMethod m) {
         this.f = f;
         this.m = m;
+        this.resOpen = null;
+    }
+
+    public DummyCallInfo(SootMethod resOpen, SootMethod m) {
+        this.f = null;
+        this.m = m;
+        this.resOpen = resOpen;
     }
 }
 
