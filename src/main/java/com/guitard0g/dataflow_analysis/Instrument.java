@@ -34,9 +34,9 @@ public class Instrument {
             protected void internalTransform(String var1, Map<String, String> var2) {
                 InstrumenterData data = new InstrumenterData();
 
+                analyzeThreadWork(data);
                 analyzeOpeners(data);
                 analyzeClosers(data);
-                analyzeThreadWork(data);
 
                 keyToInfoDecoder = data.keyToInfo;
 
@@ -102,6 +102,15 @@ public class Instrument {
         }
     }
 
+    private static boolean isAdRelated(CurrentOpenerMethodData mData) {
+        SootClass cls = mData.method.getDeclaringClass();
+        String name = cls.getName();
+        if (name.contains(".ads.")) {
+            return true;
+        }
+        return false;
+    }
+
     public static void caseInvokeAsyncTask(InvokeStmt stmt,
                                            CurrentOpenerMethodData mData,
                                            Function<SootClass, Boolean> testFunc,
@@ -109,6 +118,7 @@ public class Instrument {
         if(!isInterestingClass(mData.method.getDeclaringClass(), Instrument::isViewOrActivity)
                 || isLibraryClass(mData.method.getDeclaringClass())
                 || stmt.getInvokeExpr().getMethod().getDeclaringClass().isStatic()
+                || isAdRelated(mData)
         ) {
             return;
         }
@@ -579,7 +589,7 @@ public class Instrument {
         if (resClasses.contains(cls.getName()))
             return true;
         for (String resClass: resClasses) {
-            if (cls.getJavaStyleName().contains(resClass))
+            if (cls.getName().contains(resClass))
                 return true;
         }
         return false;
