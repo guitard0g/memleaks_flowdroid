@@ -23,21 +23,22 @@ public class App
     private static String VIEW_SIG = "android.view.View";
 
     public static <InfoFlowResults> void main(String[] args) {
-        if (args.length != 2) {
+        if (args.length < 2 || args.length > 3 || (args.length == 3 && !args[2].equals("-res"))) {
             System.out.println("Error: wrong number of arguments.");
-            System.out.println("Arguments: <path_to_apk> <path_to_android_platforms_dir>");
+            System.out.println("Arguments: <path_to_apk> <path_to_android_platforms_dir> [-res]");
             System.exit(1);
         }
         String sourceApkPath = args[0];
         String [] apkFilePieces = sourceApkPath.split("/");
         String filename = apkFilePieces[apkFilePieces.length - 1];
         String androidPlatformPath = args[1];
+        boolean resourceMode = args.length == 3;
 
 
         BasicConfigurator.configure(); // configure logging
         Logger.getRootLogger().setLevel(Level.OFF);
 
-        HashMap<Integer, DummyCallInfo> dummyDecoder = Instrument.instrument(androidPlatformPath, sourceApkPath);
+        HashMap<Integer, DummyCallInfo> dummyDecoder = Instrument.instrument(androidPlatformPath, sourceApkPath, resourceMode);
 
         // Initialize Soot and construct call graph
         String instrumentedApkPath = "./sootOutput/" + filename;
@@ -49,57 +50,51 @@ public class App
         //   fails due to finding duplicate classes.
         analyzer.getConfig().setSootIntegrationMode(InfoflowAndroidConfiguration.SootIntegrationMode.UseExistingCallgraph);
 
-        CustomSourceSinkProvider ssp = genSourceSinkProvider();
-        InfoflowResults results = analyzer.runInfoflow(ssp);
+        if (!resourceMode) {
+            CustomSourceSinkProvider ssp = genSourceSinkProvider();
+            InfoflowResults results = analyzer.runInfoflow(ssp);
 
-        HashSet<String> closedPaths = new HashSet<>();
-        if (!results.isEmpty()) {
-            for(DataFlowResult res: results.getResultSet()) {
-                displaySourceSinkResult(res, dummyDecoder);
+            HashSet<String> closedPaths = new HashSet<>();
+            if (!results.isEmpty()) {
+                for(DataFlowResult res: results.getResultSet()) {
+                    displaySourceSinkResult(res, dummyDecoder);
 
-                SootMethod maybeClosed = getClosedMethod(res, dummyDecoder);
-                if (maybeClosed != null) {
-                    closedPaths.add(maybeClosed.getSignature());
+                    SootMethod maybeClosed = getClosedMethod(res, dummyDecoder);
+                    if (maybeClosed != null) {
+                        closedPaths.add(maybeClosed.getSignature());
+                    }
+                }
+            }
+
+            System.out.println("==========================(Potential Leaks)==============================");
+            for (SootMethod m: ssp.getSourceMethods()) {
+                if (!closedPaths.contains(m.getSignature())) {
+                    displayLeakedField(m, dummyDecoder);
+                }
+            }
+        } else {
+            CustomSourceSinkProvider resourceSsp = genResourceSourceSinkProvider();
+            InfoflowResults resourceResults = analyzer.runInfoflow(resourceSsp);
+
+            HashSet<String> closedResourcePaths = new HashSet<>();
+            if (!resourceResults.isEmpty()) {
+                for(DataFlowResult res: resourceResults.getResultSet()) {
+                    displaySourceSinkResult(res, dummyDecoder);
+
+                    SootMethod maybeClosed = getClosedMethod(res, dummyDecoder);
+                    if (maybeClosed != null) {
+                        closedResourcePaths.add(maybeClosed.getSignature());
+                    }
+                }
+            }
+
+            System.out.println("==========================(Resources)==============================");
+            for (SootMethod m: resourceSsp.getSourceMethods()) {
+                if (!closedResourcePaths.contains(m.getSignature())) {
+                    displayLeakedResource(m, dummyDecoder);
                 }
             }
         }
-
-        CustomSourceSinkProvider resourceSsp = genResourceSourceSinkProvider();
-        InfoflowResults resourceResults = analyzer.runInfoflow(resourceSsp);
-
-        HashSet<String> closedResourcePaths = new HashSet<>();
-        if (!results.isEmpty()) {
-            for(DataFlowResult res: resourceResults.getResultSet()) {
-                displaySourceSinkResult(res, dummyDecoder);
-
-                SootMethod maybeClosed = getClosedMethod(res, dummyDecoder);
-                if (maybeClosed != null) {
-                    closedResourcePaths.add(maybeClosed.getSignature());
-                }
-            }
-        }
-
-        System.out.println("==========================(Potential Leaks)==============================");
-        for (SootMethod m: ssp.getSourceMethods()) {
-            if (!closedPaths.contains(m.getSignature())) {
-                displayLeakedField(m, dummyDecoder);
-            }
-        }
-
-        System.out.println("==========================(Resources)==============================");
-        for (SootMethod m: resourceSsp.getSourceMethods()) {
-            if (!closedResourcePaths.contains(m.getSignature())) {
-                displayLeakedResource(m, dummyDecoder);
-            }
-        }
-
-
-        /**
-         * TODO: Check static variable names match for dataflow paths
-         * Print out sources without corresponding sinks
-         * Print out encapsulating function for any leak instructions
-         */
-        int x = 1;
     }
 
     private static SootMethod getClosedMethod(DataFlowResult res, HashMap<Integer, DummyCallInfo> decoder) {

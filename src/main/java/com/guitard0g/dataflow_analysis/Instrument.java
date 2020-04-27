@@ -19,7 +19,7 @@ public class Instrument {
     static final HashSet<String> resClasses = new HashSet<>(Arrays.asList(new String[]{"AudioManager","AudioRecorder","MediaPlayer","Camera","SensorManager","LocationManager","PowerManager.WakeLock","WifiManager.WifiLock","WifiManager"}));
     static HashSet<InvokeStmt> seenTaskInvokes = new HashSet<>();
 
-    public static HashMap<Integer, DummyCallInfo> instrument(String sdkPath, String apkPath) {
+    public static HashMap<Integer, DummyCallInfo> instrument(String sdkPath, String apkPath, boolean resourceMode) {
         //prefer Android APK files// -src-prec apk
         Options.v().set_src_prec(Options.src_prec_apk);
         Options.v().set_process_multiple_dex(true);
@@ -34,7 +34,8 @@ public class Instrument {
             protected void internalTransform(String var1, Map<String, String> var2) {
                 InstrumenterData data = new InstrumenterData();
 
-                analyzeThreadWork(data);
+                if (!resourceMode)
+                    analyzeThreadWork(data);
                 analyzeOpeners(data);
                 analyzeClosers(data);
 
