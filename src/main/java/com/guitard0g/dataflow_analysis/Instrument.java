@@ -44,7 +44,6 @@ public class Instrument {
                     "android.os.ParcelFileDescriptor",
                     "android.os.Parcel"
             }));
-    static HashSet<InvokeStmt> seenTaskInvokes = new HashSet<>();
 
     public static HashMap<Integer, DummyCallInfo> instrument(String sdkPath, String apkPath, boolean resourceMode) {
         //prefer Android APK files// -src-prec apk
@@ -219,6 +218,16 @@ public class Instrument {
                             closerCaseAssignStmt(stmt, u, mData, data);
                         }
                     });
+
+                    for(UnitBox ub: u.getUnitBoxes()) {
+                        try {
+                            ub.getUnit().apply(new AbstractExprSwitch() {
+                                public void caseVirtualInvokeExpr(VirtualInvokeExpr expr){
+                                    closerCaseInvokeExpr(expr, u, mData, data);
+                                }
+                            });
+                        } catch (Exception ignored) {}
+                    }
                 }
             }
         }
@@ -316,6 +325,33 @@ public class Instrument {
         }
     }
 
+    public static void closerCaseInvokeExpr(InvokeExpr expr,
+                                            Unit u,
+                                            CurrentCloserMethodData mData,
+                                            InstrumenterData data) {
+
+        if (expr instanceof JVirtualInvokeExpr &&
+                isCloser(expr)) {
+            SootMethod dummy;
+            JVirtualInvokeExpr iexpr = (JVirtualInvokeExpr)expr;
+            // calculate new key for next dummy call info object
+            int infoKey = data.resourceOpens.size() + data.resourceCloses.size() + data.nullSets.size() + data.valSets.size();
+            dummy = createResourceClearMethod(iexpr.getBase(), mData.method, infoKey);
+            data.resourceCloses.add(dummy);
+
+            data.keyToInfo.put(infoKey, new DummyCallInfo(expr.getMethod(), mData.method));
+
+
+            Value invocation = Jimple.v().newStaticInvokeExpr(
+                    dummy.makeRef(),
+                    iexpr.getBase()
+            );
+            InvokeStmt invokeStmt = Jimple.v().newInvokeStmt(invocation);
+
+            // add new assign statement
+            mData.units.insertAfter(invokeStmt, u);
+        }
+    }
     public static void closerCaseAssignStmt(AssignStmt stmt,
                                             Unit u,
                                             CurrentCloserMethodData mData,
