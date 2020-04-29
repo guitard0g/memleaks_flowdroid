@@ -14,9 +14,36 @@ import soot.options.Options;
 public class Instrument {
     static HashMap<Integer, DummyCallInfo> keyToInfoDecoder = null;
 
-    static final HashSet<String> openers = new HashSet<>(Arrays.asList(new String[]{"start", "request", "lock", "open", "register", "acquire", "vibrate", "enable"}));
+    static final HashSet<String> openers = new HashSet<>(Arrays.asList(new String[]{"start", "request", "lock", "open", "register", "acquire", "vibrate", "enable", "<init>"}));
     static final HashSet<String> closers = new HashSet<>(Arrays.asList(new String[]{"end","abandon","cancel","clear","close","disable","finish","recycle","release","remove","stop","unload","unlock","unmount","unregister"}));
-    static final HashSet<String> resClasses = new HashSet<>(Arrays.asList(new String[]{"AudioManager","AudioRecorder","MediaPlayer","Camera","SensorManager","LocationManager","PowerManager.WakeLock","WifiManager.WifiLock","WifiManager"}));
+    static final HashSet<String> resClasses = new HashSet<>(Arrays.asList(
+            new String[]{"AudioManager",
+                    "AudioRecorder",
+                    "MediaPlayer",
+                    "Camera",
+                    "SensorManager",
+                    "LocationManager",
+                    "PowerManager.WakeLock",
+                    "WifiManager.WifiLock",
+                    "WifiManager",
+                    "android.database.Cursor",
+                    "android.os.PowerManager.WakeLock",
+                    "android.location.LocationListener",
+                    "android.hardware.Sensor",
+                    "android.media.MediaRecorder",
+                    "android.graphics.Bitmap",
+                    "android.os.Binder",
+                    "android.bluetooth.BluetoothAdapter",
+                    "android.media.MediaRecorder",
+                    "android.media.AudioManager",
+                    "android.os.Vibrator",
+                    "android.database.sqlite.SQLiteDatabase",
+                    "android.net.http.AndroidHttpClient",
+                    "android.os.Vibrator",
+                    "android.view.MotionEvent",
+                    "android.os.ParcelFileDescriptor",
+                    "android.os.Parcel"
+            }));
     static HashSet<InvokeStmt> seenTaskInvokes = new HashSet<>();
 
     public static HashMap<Integer, DummyCallInfo> instrument(String sdkPath, String apkPath, boolean resourceMode) {
