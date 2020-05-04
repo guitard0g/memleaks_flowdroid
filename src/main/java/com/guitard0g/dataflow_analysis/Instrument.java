@@ -13,33 +13,30 @@ import soot.options.Options;
 
 public class Instrument {
     static HashMap<Integer, DummyCallInfo> keyToInfoDecoder = null;
+    static HashSet<SootClass> usedResources = new HashSet<>();
 
-    static final HashSet<String> openers = new HashSet<>(Arrays.asList(new String[]{"start", "request", "lock", "open", "register", "acquire", "vibrate", "enable", "<init>"}));
+    static final HashSet<String> openers = new HashSet<>(Arrays.asList(new String[]{"start", "obtain", "request", "lock", "open", "register", "acquire", "vibrate", "enable", "<init>"}));
     static final HashSet<String> closers = new HashSet<>(Arrays.asList(new String[]{"end","abandon","cancel","clear","close","disable","finish","recycle","release","remove","stop","unload","unlock","unmount","unregister"}));
     static final HashSet<String> resClasses = new HashSet<>(Arrays.asList(
             new String[]{"AudioManager",
-                    "AudioRecorder",
-                    "MediaPlayer",
-                    "Camera",
-                    "SensorManager",
-                    "LocationManager",
-                    "PowerManager.WakeLock",
-                    "WifiManager.WifiLock",
-                    "WifiManager",
-                    "android.database.Cursor",
+//                    "AudioRecorder",
+                    "android.media.MediaPlayer",
+                    "android.hardware.Camera",
+//                    "SensorManager",
+//                    "LocationManager",
                     "android.os.PowerManager.WakeLock",
+                    "android.net.wifi.WifiManager.WifiLock",
+                    "android.database.Cursor",
                     "android.location.LocationListener",
-                    "android.hardware.Sensor",
-                    "android.media.MediaRecorder",
-                    "android.graphics.Bitmap",
-                    "android.os.Binder",
-                    "android.bluetooth.BluetoothAdapter",
-                    "android.media.MediaRecorder",
-                    "android.media.AudioManager",
-                    "android.os.Vibrator",
+//                    "android.hardware.Sensor",
+//                    "android.graphics.Bitmap",
+//                    "android.os.Binder",
+//                    "android.bluetooth.BluetoothAdapter",
+//                    "android.media.MediaRecorder",
+//                    "android.media.AudioManager",
+//                    "android.os.Vibrator",
                     "android.database.sqlite.SQLiteDatabase",
-                    "android.net.http.AndroidHttpClient",
-                    "android.os.Vibrator",
+//                    "android.net.http.AndroidHttpClient",
                     "android.view.MotionEvent",
                     "android.os.ParcelFileDescriptor",
                     "android.os.Parcel"
@@ -60,6 +57,7 @@ public class Instrument {
             protected void internalTransform(String var1, Map<String, String> var2) {
                 InstrumenterData data = new InstrumenterData();
 
+                gatherContextContainers();
                 if (!resourceMode)
                     analyzeThreadWork(data);
                 analyzeOpeners(data);
@@ -87,11 +85,6 @@ public class Instrument {
                     SootClass c = m.getDeclaringClass();
                     m.setDeclared(false); // clear declared
                     c.addMethod(m); // add method to class
-                }
-
-                for (SootMethod m: data.resourceCloses) {
-                    Body b = m.getActiveBody();
-                    b.validate();
                 }
             }
 
@@ -216,18 +209,14 @@ public class Instrument {
                     u.apply(new AbstractStmtSwitch() {
                         public void caseAssignStmt(AssignStmt stmt) {
                             closerCaseAssignStmt(stmt, u, mData, data);
+                            if (stmt.getRightOp() instanceof InvokeExpr)
+                                closerCaseInvokeExpr(stmt.getInvokeExpr(), u, mData, data);
+                        }
+
+                        public void caseInvokeStmt(InvokeStmt stmt) {
+                            closerCaseInvokeExpr(stmt.getInvokeExpr(), u, mData, data);
                         }
                     });
-
-                    for(UnitBox ub: u.getUnitBoxes()) {
-                        try {
-                            ub.getUnit().apply(new AbstractExprSwitch() {
-                                public void caseVirtualInvokeExpr(VirtualInvokeExpr expr){
-                                    closerCaseInvokeExpr(expr, u, mData, data);
-                                }
-                            });
-                        } catch (Exception ignored) {}
-                    }
                 }
             }
         }
@@ -255,6 +244,7 @@ public class Instrument {
 
                 dummy = createResourceReturnMethod((JimpleLocal)stmt.getLeftOp(), mData.method, infoKey);
                 data.resourceOpens.add(dummy);
+                Instrument.usedResources.add(((InvokeExpr) stmt.getRightOp()).getMethod().getDeclaringClass());
 
                 data.keyToInfo.put(infoKey, new DummyCallInfo(stmt.getInvokeExpr().getMethod(), mData.method));
 
@@ -279,8 +269,6 @@ public class Instrument {
 
                 // add new assign statement
                 mData.units.insertAfter(setField, u);
-
-                int test = 0;
             }
         } else if (stmt.getLeftOp() instanceof StaticFieldRef) {
             StaticFieldRef ref = (StaticFieldRef)stmt.getLeftOp();
@@ -330,10 +318,9 @@ public class Instrument {
                                             CurrentCloserMethodData mData,
                                             InstrumenterData data) {
 
-        if (expr instanceof JVirtualInvokeExpr &&
-                isCloser(expr)) {
+        if (expr instanceof InstanceInvokeExpr && isResCloser(expr)) {
             SootMethod dummy;
-            JVirtualInvokeExpr iexpr = (JVirtualInvokeExpr)expr;
+            InstanceInvokeExpr iexpr = (InstanceInvokeExpr)expr;
             // calculate new key for next dummy call info object
             int infoKey = data.resourceOpens.size() + data.resourceCloses.size() + data.nullSets.size() + data.valSets.size();
             dummy = createResourceClearMethod(iexpr.getBase(), mData.method, infoKey);
@@ -541,6 +528,20 @@ public class Instrument {
 
         // create the body
         Body b = Jimple.v().newBody();
+
+        // create new parameter reference to first method param
+        ParameterRef paramRef = Jimple.v().newParameterRef(v.getType(), 0);
+        // create new local to store parameter reference
+        Local param1 = Jimple.v().newLocal("$r1", v.getType());
+
+        // Create assignment of parameter reference to local
+        // $r1 = @parameter0: Type
+        Stmt assignParam = Jimple.v().newIdentityStmt(param1, paramRef);
+
+        b.getLocals().add(param1);
+        b.getUnits().addLast(assignParam);
+        b.getUnits().addLast(Jimple.v().newReturnVoidStmt());
+
         b.setMethod(m);
         mDummy.setActiveBody(b);
 
@@ -597,11 +598,21 @@ public class Instrument {
     private static boolean isInterestingClass(SootClass cls, Function<SootClass, Boolean> isInterestingFunc) {
         if (isInterestingFunc.apply(cls))
             return true;
+        for(SootClass itf: cls.getInterfaces()) {
+            if (isInterestingFunc.apply(itf))
+                return true;
+        }
 
+        // check inheritance hierarchy
         while (cls.hasSuperclass()) {
             cls = cls.getSuperclass();
+
             if (isInterestingFunc.apply(cls))
                 return true;
+            for(SootClass itf: cls.getInterfaces()) {
+                if (isInterestingFunc.apply(itf))
+                    return true;
+            }
         }
 
         return false;
@@ -649,20 +660,44 @@ public class Instrument {
         return false;
     }
 
+    private static boolean isResourceType(Type t) {
+        if (resClasses.contains(t.toString()))
+            return true;
+        return false;
+    }
+
     private static boolean isResourceClass(SootClass cls) {
         if (resClasses.contains(cls.getName()))
             return true;
         for (String resClass: resClasses) {
-            if (cls.getName().contains(resClass))
+            if (isInterestingClass(cls, (SootClass sc)->sc.getName().contains(resClass)))
                 return true;
+//            if (cls.getName().contains(resClass))
+//                return true;
         }
         return false;
     }
 
     private static boolean isCloser(InvokeExpr iexpr) {
         if (iexpr.getMethod().getDeclaringClass().isApplicationClass() ||
-                !iexpr.getMethod().getReturnType().toString().startsWith("android") ||
                 !isResourceClass(iexpr.getMethod().getDeclaringClass())) {
+            return false;
+        }
+
+        String methodName = iexpr.getMethod().getName();
+        for (String closer: closers) {
+            if (methodName.startsWith(closer)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static boolean isResCloser(InvokeExpr iexpr) {
+        if (iexpr.getMethod().getDeclaringClass().isApplicationClass() ||
+                !isResourceClass(iexpr.getMethod().getDeclaringClass()) ||
+                !usedResources.contains(iexpr.getMethod().getDeclaringClass())) {
             return false;
         }
 
@@ -678,10 +713,12 @@ public class Instrument {
 
     private static boolean isOpener(InvokeExpr iexpr) {
         if (iexpr.getMethod().getDeclaringClass().isApplicationClass() ||
-                !iexpr.getMethod().getReturnType().toString().startsWith("android") ||
                 !isResourceClass(iexpr.getMethod().getDeclaringClass())) {
             return false;
         }
+
+        if(isResourceType(iexpr.getMethod().getReturnType()))
+            return true;
 
         String methodName = iexpr.getMethod().getName();
         for (String opener: openers) {
@@ -691,6 +728,36 @@ public class Instrument {
         }
 
         return false;
+    }
+
+    private static boolean hasContextParam(SootMethod m) {
+        for (Type t: m.getParameterTypes()) {
+            SootClass typeClass = Scene.v().getSootClassUnsafe(t.toString(), false);
+            if (typeClass != null &&
+                    isInterestingClass(typeClass, cls -> cls.getName().equals("android.content.Context")))
+                return true;
+        }
+        return false;
+    }
+
+    private static void gatherContextContainers() {
+        ArrayList<SootClass> contextContainers = new ArrayList<>();
+        for(SootClass cls: Scene.v().getClasses()) {
+            List<SootMethod> constructors = getConstructors(cls);
+            if (constructors.stream().filter(m -> hasContextParam(m)).count() > 0)
+                contextContainers.add(cls);
+
+        }
+        System.out.println(contextContainers);
+    }
+
+    private static List<SootMethod> getConstructors(SootClass cls) {
+        ArrayList<SootMethod> constructors = new ArrayList<>();
+        for (SootMethod m: cls.getMethods()) {
+            if (m.getName().equals("<init>"))
+                constructors.add(m);
+        }
+        return constructors;
     }
 }
 

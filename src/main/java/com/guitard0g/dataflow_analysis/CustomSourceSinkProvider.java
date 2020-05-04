@@ -27,6 +27,10 @@ public class CustomSourceSinkProvider implements ISourceSinkDefinitionProvider {
     }
 
     public void addSourceMethod(SootMethod m) {
+        if (!isAppMethod(m)) {
+            return;
+        }
+
         HashSet<AccessPathTuple> aps = new HashSet<>();
         aps.add(AccessPathTuple.getBlankSourceTuple());
 
@@ -90,6 +94,13 @@ public class CustomSourceSinkProvider implements ISourceSinkDefinitionProvider {
         FieldSourceSinkDefinition def = new FieldSourceSinkDefinition(sig, aps);
         sourcesAndSinks.put(sig, def);
         sinks.add(def);
+    }
+
+    private boolean isAppMethod(SootMethod m) {
+        String clsName = m.getDeclaringClass().getName();
+        if (clsName.startsWith(App.appPackage))
+            return true;
+        return false;
     }
 
     public HashSet<SootMethod> getSourceMethods() {

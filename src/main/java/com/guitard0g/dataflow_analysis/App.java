@@ -1,25 +1,31 @@
 package com.guitard0g.dataflow_analysis;
 
 
-import fj.P;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.apache.log4j.config.PropertySetter;
-import soot.*;
+import org.xmlpull.v1.XmlPullParserException;
+import soot.PhaseOptions;
+import soot.Scene;
+import soot.SootClass;
+import soot.SootMethod;
 import soot.jimple.infoflow.InfoflowConfiguration;
 import soot.jimple.infoflow.android.InfoflowAndroidConfiguration;
 import soot.jimple.infoflow.android.SetupApplication;
+import soot.jimple.infoflow.android.manifest.ProcessManifest;
 import soot.jimple.infoflow.results.AbstractResultSourceSinkInfo;
 import soot.jimple.infoflow.results.DataFlowResult;
 import soot.jimple.infoflow.results.InfoflowResults;
 import soot.jimple.toolkits.callgraph.CallGraph;
 import soot.jimple.toolkits.callgraph.Edge;
+import soot.options.Options;
 
+import java.io.IOException;
 import java.util.*;
 
 public class App
 {
+    public static String appPackage = "";
     private static String VIEW_SIG = "android.view.View";
 
     public static <InfoFlowResults> void main(String[] args) {
@@ -45,6 +51,16 @@ public class App
         SetupApplication analyzer = new SetupApplication(androidPlatformPath, instrumentedApkPath);
         analyzer.getConfig().setCallgraphAlgorithm(InfoflowConfiguration.CallgraphAlgorithm.CHA);
         analyzer.constructCallgraph();
+        analyzer.getConfig().setDataFlowTimeout(1800);
+        analyzer.getConfig().setFlowSensitiveAliasing(false);
+        analyzer.getConfig().setEnableArrayTracking(false);
+        analyzer.getConfig().setIgnoreFlowsInSystemPackages(true);
+
+        try {
+            ProcessManifest processMan = new ProcessManifest(instrumentedApkPath);
+            App.appPackage = processMan.getPackageName();
+        } catch (IOException | XmlPullParserException ignored) {}
+
         // Important to not repeat work in recreating the callgraph.
         // This also prevents a bug where information is fetched twice and FlowDroid
         //   fails due to finding duplicate classes.
@@ -74,7 +90,9 @@ public class App
             }
         } else {
             CustomSourceSinkProvider resourceSsp = genResourceSourceSinkProvider();
+            System.out.println("Starting analysis...");
             InfoflowResults resourceResults = analyzer.runInfoflow(resourceSsp);
+            System.out.println("Analysis finished.");
 
             HashSet<String> closedResourcePaths = new HashSet<>();
             if (!resourceResults.isEmpty()) {
@@ -302,7 +320,7 @@ public class App
         for (Iterator<Edge> it = cg.iterator(); it.hasNext(); ) {
             Edge e = it.next();
 
-            if (e.tgt().getName().contains("__CLOSE_RES__")) {
+            if (e.tgt().getName().contains("__CLEAR_RES__")) {
                 setMethods.add(e.tgt());
             }
         }
