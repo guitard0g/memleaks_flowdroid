@@ -15,6 +15,7 @@ public class Instrument {
     static HashMap<Integer, DummyCallInfo> keyToInfoDecoder = null;
     static HashSet<SootClass> usedResources = new HashSet<>();
 
+    static HashSet<SootClass> contextContainers = new HashSet<>();
     static final HashSet<String> openers = new HashSet<>(Arrays.asList(new String[]{"start", "obtain", "request", "lock", "open", "register", "acquire", "vibrate", "enable", "<init>"}));
     static final HashSet<String> closers = new HashSet<>(Arrays.asList(new String[]{"end","abandon","cancel","clear","close","disable","finish","recycle","release","remove","stop","unload","unlock","unmount","unregister"}));
     static final HashSet<String> resClasses = new HashSet<>(Arrays.asList(
@@ -58,6 +59,7 @@ public class Instrument {
                 InstrumenterData data = new InstrumenterData();
 
                 gatherContextContainers();
+
                 if (!resourceMode)
                     analyzeThreadWork(data);
                 analyzeOpeners(data);
@@ -92,6 +94,9 @@ public class Instrument {
         }));
 
         soot.Main.main(new String[]{"-android-jars", sdkPath, "-process-dir", apkPath});
+
+        // clear this so that it doesnt take up space
+        contextContainers = null;
 
         return keyToInfoDecoder;
     }
@@ -139,6 +144,7 @@ public class Instrument {
                 || isLibraryClass(mData.method.getDeclaringClass())
                 || stmt.getInvokeExpr().getMethod().getDeclaringClass().isStatic()
                 || isAdRelated(mData)
+                || !isViewOrActivity(stmt.getInvokeExpr().getMethod().getDeclaringClass())
         ) {
             return;
         }
@@ -619,12 +625,13 @@ public class Instrument {
     }
 
     private static boolean isViewOrActivity(SootClass cls) {
-        String name = cls.getName();
-        if ( name.equals("android.view.View") ||
-                name.equals("android.app.Activity")) {
-            return true;
-        }
-        return false;
+        return contextContainers.contains(cls);
+//        String name = cls.getName();
+//        if ( name.equals("android.view.View") ||
+//                name.equals("android.app.Activity")) {
+//            return true;
+//        }
+//        return false;
     }
 
     private static boolean isAsyncTask(SootClass cls) {
@@ -730,25 +737,66 @@ public class Instrument {
         return false;
     }
 
-    private static boolean hasContextParam(SootMethod m) {
+    private static boolean isContextField(SootField f, HashSet<SootClass> currContainers) {
+        SootClass typeClass = Scene.v().getSootClassUnsafe(f.getType().toString(), false);
+        if (typeClass != null &&
+                isInterestingClass(typeClass, cls -> currContainers.contains(cls)))
+            return true;
+        return false;
+    }
+
+    private static boolean hasContextParam(SootMethod m, HashSet<SootClass> currContainers) {
         for (Type t: m.getParameterTypes()) {
             SootClass typeClass = Scene.v().getSootClassUnsafe(t.toString(), false);
             if (typeClass != null &&
-                    isInterestingClass(typeClass, cls -> cls.getName().equals("android.content.Context")))
+                    isInterestingClass(typeClass, cls -> currContainers.contains(cls)))
                 return true;
         }
         return false;
     }
 
-    private static void gatherContextContainers() {
-        ArrayList<SootClass> contextContainers = new ArrayList<>();
-        for(SootClass cls: Scene.v().getClasses()) {
-            List<SootMethod> constructors = getConstructors(cls);
-            if (constructors.stream().filter(m -> hasContextParam(m)).count() > 0)
-                contextContainers.add(cls);
+    private static HashSet<SootClass> gatherContextContainersF() {
+        HashSet<SootClass> contextContainers = new HashSet<>();
+        SootClass context = Scene.v().getSootClass("android.content.Context");
+        contextContainers.add(context);
 
-        }
-        System.out.println(contextContainers);
+        // iteratively gather context containers until fixed point
+        int prevContainerCount;
+        do {
+            prevContainerCount = contextContainers.size();
+
+            for(SootClass cls: Scene.v().getClasses()) {
+                if (cls.getFields().stream().anyMatch(f -> isContextField(f, contextContainers)) && cls.getInterfaceCount() > 0)
+                    contextContainers.add(cls);
+            }
+        } while (contextContainers.size() != prevContainerCount);
+
+        return contextContainers;
+    }
+
+    private static HashSet<SootClass> gatherContextContainersC() {
+        HashSet<SootClass> contextContainers = new HashSet<>();
+        SootClass context = Scene.v().getSootClass("android.content.Context");
+        contextContainers.add(context);
+
+        // iteratively gather context containers until fixed point
+        int prevContainerCount;
+        do {
+            prevContainerCount = contextContainers.size();
+
+            for(SootClass cls: Scene.v().getClasses()) {
+                List<SootMethod> constructors = getConstructors(cls);
+                if (constructors.stream().anyMatch(f -> hasContextParam(f, contextContainers)))
+                    contextContainers.add(cls);
+            }
+        } while (contextContainers.size() != prevContainerCount);
+
+        return contextContainers;
+    }
+
+    private static void gatherContextContainers() {
+        contextContainers = gatherContextContainersC();
+        contextContainers.addAll(gatherContextContainersF());
     }
 
     private static List<SootMethod> getConstructors(SootClass cls) {
