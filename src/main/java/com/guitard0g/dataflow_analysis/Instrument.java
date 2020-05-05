@@ -14,6 +14,8 @@ import soot.options.Options;
 public class Instrument {
     static HashMap<Integer, DummyCallInfo> keyToInfoDecoder = null;
     static HashSet<SootClass> usedResources = new HashSet<>();
+    static int threadBugCount = 0;
+    static HashSet<SootClass> leakyThreadObjects = new HashSet<>();
 
     static HashSet<SootClass> contextContainers = new HashSet<>();
     static final HashSet<String> openers = new HashSet<>(Arrays.asList(new String[]{"start", "obtain", "request", "lock", "open", "register", "acquire", "vibrate", "enable", "<init>"}));
@@ -94,6 +96,7 @@ public class Instrument {
         }));
 
         soot.Main.main(new String[]{"-android-jars", sdkPath, "-process-dir", apkPath});
+        System.out.println("Number of Thread related bugs: " + threadBugCount);
 
         // clear this so that it doesnt take up space
         contextContainers = null;
@@ -119,7 +122,7 @@ public class Instrument {
                         public void caseInvokeStmt(InvokeStmt stmt) {
                             caseInvokeAsyncTask(stmt, mData, Instrument::isAsyncTask, "AsyncTask");
                             caseInvokeAsyncTask(stmt, mData, Instrument::isThreadOrTimerTask, "ThreadTask/TimerTask");
-                            caseInvokeAsyncTask(stmt, mData, Instrument::isRunnable, "Runnable");
+//                            caseInvokeAsyncTask(stmt, mData, Instrument::isRunnable, "Runnable");
                         }
                     });
                 }
@@ -150,6 +153,8 @@ public class Instrument {
         }
         if (isInterestingClass(stmt.getInvokeExpr().getMethod().getDeclaringClass(), testFunc) &&
                 stmt.getInvokeExpr().getMethod().getName().equals("<init>")) {
+            threadBugCount++;
+
             System.out.println("==========================(" + objectType + ")==============================");
             System.out.println(objectType + " DECLARED INSIDE UI OBJECT (POTENTIAL LEAK): ");
             System.out.println("Bytecode instruction: ");
@@ -201,7 +206,8 @@ public class Instrument {
 
     public static void analyzeClosers(InstrumenterData data) {
         for(SootClass c: Scene.v().getApplicationClasses()) {
-            for (SootMethod m : c.getMethods()) {
+            HashSet<SootMethod> methods = new HashSet<>(c.getMethods());
+            for (SootMethod m : methods) {
                 CurrentCloserMethodData mData;
                 try {
                     mData = new CurrentCloserMethodData(m);

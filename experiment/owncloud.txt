@@ -1,0 +1,112 @@
+Soot started on Mon May 04 22:25:36 EDT 2020
+==========================(AsyncTask)==============================
+AsyncTask DECLARED INSIDE UI OBJECT (POTENTIAL LEAK):
+Bytecode instruction:
+	specialinvoke $r3.<com.owncloud.android.ui.helpers.FilesUploadHelper$CheckAvailableSpaceTask: void <init>(com.owncloud.android.ui.helpers.FilesUploadHelper,java.lang.String[],com.owncloud.android.ui.helpers.FilesUploadHelper$OnCheckAvailableSpaceListener)>($r0, $r1, $r2)
+SOURCE:
+	<com.owncloud.android.ui.helpers.FilesUploadHelper: void checkIfAvailableSpace(java.lang.String[],com.owncloud.android.ui.helpers.FilesUploadHelper$OnCheckAvailableSpaceListener)>
+NO PATH TO SOURCE METHOD FOUND.
+==========================(AsyncTask)==============================
+AsyncTask DECLARED INSIDE UI OBJECT (POTENTIAL LEAK):
+Bytecode instruction:
+	specialinvoke $r27.<com.owncloud.android.datamodel.ThumbnailsCacheManager$ThumbnailGenerationTask: void <init>(android.widget.ImageView,com.owncloud.android.datamodel.FileDataStorageManager,android.accounts.Account)>($r13, $r28, $r29)
+SOURCE:
+	<com.owncloud.android.ui.adapter.FileListListAdapter: android.view.View getView(int,android.view.View,android.view.ViewGroup)>
+NO PATH TO SOURCE METHOD FOUND.
+==========================(AsyncTask)==============================
+AsyncTask DECLARED INSIDE UI OBJECT (POTENTIAL LEAK):
+Bytecode instruction:
+	specialinvoke $r4.<com.owncloud.android.files.services.AvailableOfflineSyncJobService$AvailableOfflineJobTask: void <init>(android.app.job.JobService)>($r0)
+SOURCE:
+	<com.owncloud.android.files.services.AvailableOfflineSyncJobService: boolean onStartJob(android.app.job.JobParameters)>
+NO PATH TO SOURCE METHOD FOUND.
+==========================(AsyncTask)==============================
+AsyncTask DECLARED INSIDE UI OBJECT (POTENTIAL LEAK):
+Bytecode instruction:
+	specialinvoke $r4.<com.owncloud.android.ui.asynctasks.CopyAndUploadContentUrisTask: void <init>(com.owncloud.android.ui.asynctasks.CopyAndUploadContentUrisTask$OnCopyTmpFilesTaskListener,android.content.Context)>($r5, $r3)
+SOURCE:
+	<com.owncloud.android.ui.helpers.UriUploader: void copyThenUpload(android.net.Uri[],java.lang.String[])>
+NO PATH TO SOURCE METHOD FOUND.
+==========================(AsyncTask)==============================
+AsyncTask DECLARED INSIDE UI OBJECT (POTENTIAL LEAK):
+Bytecode instruction:
+	specialinvoke $r2.<com.owncloud.android.ui.activity.ManageSpaceActivity$ClearDataAsynTask: void <init>(com.owncloud.android.ui.activity.ManageSpaceActivity,com.owncloud.android.ui.activity.ManageSpaceActivity$1)>($r0, null)
+SOURCE:
+	<com.owncloud.android.ui.activity.ManageSpaceActivity: void lambda$onCreate$0$ManageSpaceActivity(android.view.View)>
+NO PATH TO SOURCE METHOD FOUND.
+==========================(AsyncTask)==============================
+AsyncTask DECLARED INSIDE UI OBJECT (POTENTIAL LEAK):
+Bytecode instruction:
+	specialinvoke $r19.<com.owncloud.android.datamodel.ThumbnailsCacheManager$ThumbnailGenerationTask: void <init>(android.widget.ImageView)>($r11)
+SOURCE:
+	<com.owncloud.android.ui.adapter.LocalFileListAdapter: android.view.View getView(int,android.view.View,android.view.ViewGroup)>
+NO PATH TO SOURCE METHOD FOUND.
+==========================(AsyncTask)==============================
+AsyncTask DECLARED INSIDE UI OBJECT (POTENTIAL LEAK):
+Bytecode instruction:
+	specialinvoke $r0.<com.owncloud.android.ui.activity.ManageSpaceActivity$ClearDataAsynTask: void <init>(com.owncloud.android.ui.activity.ManageSpaceActivity)>($r1)
+SOURCE:
+	<com.owncloud.android.ui.activity.ManageSpaceActivity$ClearDataAsynTask: void <init>(com.owncloud.android.ui.activity.ManageSpaceActivity,com.owncloud.android.ui.activity.ManageSpaceActivity$1)>
+NO PATH TO SOURCE METHOD FOUND.
+==========================(AsyncTask)==============================
+AsyncTask DECLARED INSIDE UI OBJECT (POTENTIAL LEAK):
+Bytecode instruction:
+	specialinvoke $r3.<com.owncloud.android.ui.activity.ErrorsWhileCopyingHandlerActivity$MoveFilesTask: void <init>(com.owncloud.android.ui.activity.ErrorsWhileCopyingHandlerActivity,com.owncloud.android.ui.activity.ErrorsWhileCopyingHandlerActivity$1)>($r0, null)
+SOURCE:
+	<com.owncloud.android.ui.activity.ErrorsWhileCopyingHandlerActivity: void onClick(android.view.View)>
+NO PATH TO SOURCE METHOD FOUND.
+==========================(AsyncTask)==============================
+AsyncTask DECLARED INSIDE UI OBJECT (POTENTIAL LEAK):
+Bytecode instruction:
+	specialinvoke $r47.<com.owncloud.android.datamodel.ThumbnailsCacheManager$ThumbnailGenerationTask: void <init>(android.widget.ImageView,com.owncloud.android.datamodel.FileDataStorageManager,android.accounts.Account)>($r43, $r48, $r22)
+SOURCE:
+	<com.owncloud.android.ui.adapter.ExpandableUploadListAdapter: android.view.View getView(com.owncloud.android.datamodel.OCUpload[],int,android.view.View,android.view.ViewGroup)>
+NO PATH TO SOURCE METHOD FOUND.
+==========================(AsyncTask)==============================
+AsyncTask DECLARED INSIDE UI OBJECT (POTENTIAL LEAK):
+Bytecode instruction:
+	specialinvoke $r47.<com.owncloud.android.datamodel.ThumbnailsCacheManager$ThumbnailGenerationTask: void <init>(android.widget.ImageView)>($r43)
+SOURCE:
+	<com.owncloud.android.ui.adapter.ExpandableUploadListAdapter: android.view.View getView(com.owncloud.android.datamodel.OCUpload[],int,android.view.View,android.view.ViewGroup)>
+NO PATH TO SOURCE METHOD FOUND.
+==========================(AsyncTask)==============================
+AsyncTask DECLARED INSIDE UI OBJECT (POTENTIAL LEAK):
+Bytecode instruction:
+	specialinvoke $r0.<com.owncloud.android.ui.activity.ErrorsWhileCopyingHandlerActivity$MoveFilesTask: void <init>(com.owncloud.android.ui.activity.ErrorsWhileCopyingHandlerActivity)>($r1)
+SOURCE:
+	<com.owncloud.android.ui.activity.ErrorsWhileCopyingHandlerActivity$MoveFilesTask: void <init>(com.owncloud.android.ui.activity.ErrorsWhileCopyingHandlerActivity,com.owncloud.android.ui.activity.ErrorsWhileCopyingHandlerActivity$1)>
+NO PATH TO SOURCE METHOD FOUND.
+==========================(AsyncTask)==============================
+AsyncTask DECLARED INSIDE UI OBJECT (POTENTIAL LEAK):
+Bytecode instruction:
+	specialinvoke $r4.<com.owncloud.android.files.services.CameraUploadsSyncJobService$CameraUploadsSyncJobTask: void <init>(android.app.job.JobService)>($r0)
+SOURCE:
+	<com.owncloud.android.files.services.CameraUploadsSyncJobService: boolean onStartJob(android.app.job.JobParameters)>
+NO PATH TO SOURCE METHOD FOUND.
+==========================(AsyncTask)==============================
+AsyncTask DECLARED INSIDE UI OBJECT (POTENTIAL LEAK):
+Bytecode instruction:
+	specialinvoke $r9.<com.owncloud.android.datamodel.ThumbnailsCacheManager$GetAvatarTask: void <init>(android.view.MenuItem,android.accounts.Account,float,boolean)>($r8, $r4, $f0, 0)
+SOURCE:
+	<com.owncloud.android.ui.activity.DrawerActivity: void repopulateAccountList(android.accounts.Account[])>
+NO PATH TO SOURCE METHOD FOUND.
+==========================(AsyncTask)==============================
+AsyncTask DECLARED INSIDE UI OBJECT (POTENTIAL LEAK):
+Bytecode instruction:
+	specialinvoke $r17.<com.owncloud.android.datamodel.ThumbnailsCacheManager$ThumbnailGenerationTask: void <init>(android.widget.ImageView,com.owncloud.android.datamodel.FileDataStorageManager,android.accounts.Account)>($r11, $r18, $r19)
+SOURCE:
+	<com.owncloud.android.ui.adapter.ReceiveExternalFilesAdapter: android.view.View getView(int,android.view.View,android.view.ViewGroup)>
+NO PATH TO SOURCE METHOD FOUND.
+==========================(AsyncTask)==============================
+AsyncTask DECLARED INSIDE UI OBJECT (POTENTIAL LEAK):
+Bytecode instruction:
+	specialinvoke $r8.<com.owncloud.android.ui.preview.PrepareVideoPlayerAsyncTask: void <init>(android.content.Context,com.owncloud.android.ui.preview.PrepareVideoPlayerAsyncTask$OnPrepareVideoPlayerTaskListener,com.owncloud.android.datamodel.OCFile,android.accounts.Account,android.os.Handler)>($r9, $r0, $r10, $r11, $r1)
+SOURCE:
+	<com.owncloud.android.ui.preview.PreviewVideoActivity: void preparePlayer()>
+NO PATH TO SOURCE METHOD FOUND.
+Soot finished on Mon May 04 22:26:23 EDT 2020
+Soot has run for 0 min. 46 sec.
+Number of Thread related bugs: 15
+==========================(Potential Leaks)==============================
+
+Process finished with exit code 0

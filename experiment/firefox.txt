@@ -1,0 +1,140 @@
+Soot started on Mon May 04 23:06:48 EDT 2020
+==========================(ThreadTask/TimerTask)==============================
+ThreadTask/TimerTask DECLARED INSIDE UI OBJECT (POTENTIAL LEAK):
+Bytecode instruction:
+	specialinvoke $r3.<com.adjust.sdk.ActivityHandler: void <init>(com.adjust.sdk.AdjustConfig)>($r0)
+SOURCE:
+	<com.adjust.sdk.ActivityHandler: com.adjust.sdk.ActivityHandler getInstance(com.adjust.sdk.AdjustConfig)>
+NO PATH TO SOURCE METHOD FOUND.
+==========================(ThreadTask/TimerTask)==============================
+ThreadTask/TimerTask DECLARED INSIDE UI OBJECT (POTENTIAL LEAK):
+Bytecode instruction:
+	specialinvoke $r0.<org.mozilla.gecko.ActionBarTextSelection$ActionModeTimerTask: void <init>(org.mozilla.gecko.ActionBarTextSelection)>($r1)
+SOURCE:
+	<org.mozilla.gecko.ActionBarTextSelection$ActionModeTimerTask: void <init>(org.mozilla.gecko.ActionBarTextSelection,org.mozilla.gecko.ActionBarTextSelection$1)>
+NO PATH TO SOURCE METHOD FOUND.
+==========================(AsyncTask)==============================
+AsyncTask DECLARED INSIDE UI OBJECT (POTENTIAL LEAK):
+Bytecode instruction:
+	specialinvoke $r0.<org.mozilla.gecko.util.URIUtils$GetFormattedDomainAsyncTask: void <init>(android.content.Context,java.net.URI,boolean,int)>($r3, $r4, 0, 1)
+SOURCE:
+	<org.mozilla.gecko.activitystream.homepanel.stream.WebpageItemRow$UpdatePageDomainAsyncTask: void <init>(android.content.Context,java.net.URI,android.widget.TextView)>
+NO PATH TO SOURCE METHOD FOUND.
+==========================(AsyncTask)==============================
+AsyncTask DECLARED INSIDE UI OBJECT (POTENTIAL LEAK):
+Bytecode instruction:
+	specialinvoke $r0.<org.mozilla.gecko.switchboard.AsyncConfigLoader: void <init>(android.content.Context,java.lang.String,org.mozilla.gecko.switchboard.SwitchBoard$ConfigStatusListener)>($r2, $r3, $r4)
+SOURCE:
+	<org.mozilla.gecko.BrowserApp$10: void <init>(org.mozilla.gecko.BrowserApp,android.content.Context,java.lang.String,org.mozilla.gecko.switchboard.SwitchBoard$ConfigStatusListener,android.content.Context,org.mozilla.gecko.mma.MmaDelegate$MmaVariablesChangedListener)>
+NO PATH TO SOURCE METHOD FOUND.
+==========================(ThreadTask/TimerTask)==============================
+ThreadTask/TimerTask DECLARED INSIDE UI OBJECT (POTENTIAL LEAK):
+Bytecode instruction:
+	specialinvoke $r9.<org.mozilla.mozstumbler.service.stumblerthread.scanners.cellscanner.CellScanner$1: void <init>(org.mozilla.mozstumbler.service.stumblerthread.scanners.cellscanner.CellScanner,org.mozilla.mozstumbler.service.AppGlobals$ActiveOrPassiveStumbling)>($r0, $r1)
+SOURCE:
+	<org.mozilla.mozstumbler.service.stumblerthread.scanners.cellscanner.CellScanner: void start(org.mozilla.mozstumbler.service.AppGlobals$ActiveOrPassiveStumbling)>
+NO PATH TO SOURCE METHOD FOUND.
+==========================(AsyncTask)==============================
+AsyncTask DECLARED INSIDE UI OBJECT (POTENTIAL LEAK):
+Bytecode instruction:
+	specialinvoke $r2.<org.mozilla.mozstumbler.service.stumblerthread.StumblerService$1: void <init>(org.mozilla.mozstumbler.service.stumblerthread.StumblerService)>($r0)
+SOURCE:
+	<org.mozilla.mozstumbler.service.stumblerthread.StumblerService: void onDestroy()>
+NO PATH TO SOURCE METHOD FOUND.
+==========================(AsyncTask)==============================
+AsyncTask DECLARED INSIDE UI OBJECT (POTENTIAL LEAK):
+Bytecode instruction:
+	specialinvoke $r0.<org.mozilla.gecko.widget.ActivityChooserModel$PersistHistoryAsyncTask: void <init>(org.mozilla.gecko.widget.ActivityChooserModel)>($r1)
+SOURCE:
+	<org.mozilla.gecko.widget.ActivityChooserModel$PersistHistoryAsyncTask: void <init>(org.mozilla.gecko.widget.ActivityChooserModel,org.mozilla.gecko.widget.ActivityChooserModel$1)>
+NO PATH TO SOURCE METHOD FOUND.
+==========================(ThreadTask/TimerTask)==============================
+ThreadTask/TimerTask DECLARED INSIDE UI OBJECT (POTENTIAL LEAK):
+Bytecode instruction:
+	specialinvoke $r7.<org.mozilla.gecko.ActionBarTextSelection$ActionModeTimerTask: void <init>(org.mozilla.gecko.ActionBarTextSelection,org.mozilla.gecko.ActionBarTextSelection$1)>($r0, null)
+SOURCE:
+	<org.mozilla.gecko.ActionBarTextSelection: void handleMessage(java.lang.String,org.mozilla.gecko.util.GeckoBundle,org.mozilla.gecko.util.EventCallback)>
+NO PATH TO SOURCE METHOD FOUND.
+==========================(ThreadTask/TimerTask)==============================
+ThreadTask/TimerTask DECLARED INSIDE UI OBJECT (POTENTIAL LEAK):
+Bytecode instruction:
+	specialinvoke $r6.<org.mozilla.mozstumbler.service.stumblerthread.scanners.WifiScanner$1: void <init>(org.mozilla.mozstumbler.service.stumblerthread.scanners.WifiScanner,org.mozilla.mozstumbler.service.AppGlobals$ActiveOrPassiveStumbling)>($r0, $r1)
+SOURCE:
+	<org.mozilla.mozstumbler.service.stumblerthread.scanners.WifiScanner: void activatePeriodicScan(org.mozilla.mozstumbler.service.AppGlobals$ActiveOrPassiveStumbling)>
+NO PATH TO SOURCE METHOD FOUND.
+==========================(AsyncTask)==============================
+AsyncTask DECLARED INSIDE UI OBJECT (POTENTIAL LEAK):
+Bytecode instruction:
+	specialinvoke $r0.<org.mozilla.gecko.util.URIUtils$GetFormattedDomainAsyncTask: void <init>(android.content.Context,java.net.URI,boolean,int)>($r4, $r2, 1, 1)
+SOURCE:
+	<org.mozilla.gecko.activitystream.homepanel.menu.BottomSheetContextMenu$UpdatePageDomainAsyncTask: void <init>(android.content.Context,android.widget.TextView,java.net.URI,java.lang.String[])>
+NO PATH TO SOURCE METHOD FOUND.
+==========================(AsyncTask)==============================
+AsyncTask DECLARED INSIDE UI OBJECT (POTENTIAL LEAK):
+Bytecode instruction:
+	specialinvoke $r0.<org.mozilla.gecko.activitystream.homepanel.menu.BottomSheetContextMenu$UpdatePageDomainAsyncTask: void <init>(android.content.Context,android.widget.TextView,java.net.URI,java.lang.String[])>($r1, $r2, $r3, $r4)
+SOURCE:
+	<org.mozilla.gecko.activitystream.homepanel.menu.BottomSheetContextMenu$UpdatePageDomainAsyncTask: void <init>(android.content.Context,android.widget.TextView,java.net.URI,java.lang.String[],org.mozilla.gecko.activitystream.homepanel.menu.BottomSheetContextMenu$1)>
+NO PATH TO SOURCE METHOD FOUND.
+==========================(AsyncTask)==============================
+AsyncTask DECLARED INSIDE UI OBJECT (POTENTIAL LEAK):
+Bytecode instruction:
+	specialinvoke $r0.<org.mozilla.gecko.util.URIUtils$GetFormattedDomainAsyncTask: void <init>(android.content.Context,java.net.URI,boolean,int)>($r3, $r4, 0, 1)
+SOURCE:
+	<org.mozilla.gecko.activitystream.homepanel.topsites.TopSitesCard$UpdateCardTitleAsyncTask: void <init>(android.content.Context,java.net.URI,android.widget.TextView)>
+NO PATH TO SOURCE METHOD FOUND.
+==========================(AsyncTask)==============================
+AsyncTask DECLARED INSIDE UI OBJECT (POTENTIAL LEAK):
+Bytecode instruction:
+	specialinvoke $r7.<org.mozilla.gecko.BrowserApp$10: void <init>(org.mozilla.gecko.BrowserApp,android.content.Context,java.lang.String,org.mozilla.gecko.switchboard.SwitchBoard$ConfigStatusListener,android.content.Context,org.mozilla.gecko.mma.MmaDelegate$MmaVariablesChangedListener)>($r0, $r3, $r6, $r1, $r3, $r2)
+SOURCE:
+	<org.mozilla.gecko.BrowserApp: void initSwitchboardAndMma(android.content.Context,org.mozilla.gecko.mozglue.SafeIntent,boolean)>
+NO PATH TO SOURCE METHOD FOUND.
+==========================(AsyncTask)==============================
+AsyncTask DECLARED INSIDE UI OBJECT (POTENTIAL LEAK):
+Bytecode instruction:
+	specialinvoke $r4.<org.mozilla.gecko.widget.ActivityChooserModel$PersistHistoryAsyncTask: void <init>(org.mozilla.gecko.widget.ActivityChooserModel,org.mozilla.gecko.widget.ActivityChooserModel$1)>($r0, null)
+SOURCE:
+	<org.mozilla.gecko.widget.ActivityChooserModel: void persistHistoricalDataIfNeeded()>
+NO PATH TO SOURCE METHOD FOUND.
+==========================(ThreadTask/TimerTask)==============================
+ThreadTask/TimerTask DECLARED INSIDE UI OBJECT (POTENTIAL LEAK):
+Bytecode instruction:
+	specialinvoke $r5.<org.mozilla.mozstumbler.service.stumblerthread.datahandling.DataStorageManager$1: void <init>(org.mozilla.mozstumbler.service.stumblerthread.datahandling.DataStorageManager)>($r0)
+SOURCE:
+	<org.mozilla.mozstumbler.service.stumblerthread.datahandling.DataStorageManager: void insert(java.lang.String,int,int)>
+NO PATH TO SOURCE METHOD FOUND.
+==========================(AsyncTask)==============================
+AsyncTask DECLARED INSIDE UI OBJECT (POTENTIAL LEAK):
+Bytecode instruction:
+	specialinvoke $r7.<org.mozilla.gecko.activitystream.homepanel.menu.BottomSheetContextMenu$UpdatePageDomainAsyncTask: void <init>(android.content.Context,android.widget.TextView,java.net.URI,java.lang.String[],org.mozilla.gecko.activitystream.homepanel.menu.BottomSheetContextMenu$1)>($r10, $r18, $r19, $r9, null)
+SOURCE:
+	<org.mozilla.gecko.activitystream.homepanel.menu.BottomSheetContextMenu: void <init>(android.view.View,org.mozilla.gecko.activitystream.ActivityStreamTelemetry$Extras$Builder,org.mozilla.gecko.activitystream.homepanel.menu.ActivityStreamContextMenu$MenuMode,org.mozilla.gecko.activitystream.homepanel.model.WebpageModel,boolean,org.mozilla.gecko.home.HomePager$OnUrlOpenListener,org.mozilla.gecko.home.HomePager$OnUrlOpenInBackgroundListener,int,int)>
+NO PATH TO SOURCE METHOD FOUND.
+==========================(AsyncTask)==============================
+AsyncTask DECLARED INSIDE UI OBJECT (POTENTIAL LEAK):
+Bytecode instruction:
+	specialinvoke $r6.<org.mozilla.gecko.activitystream.homepanel.stream.WebpageItemRow$UpdatePageDomainAsyncTask: void <init>(android.content.Context,java.net.URI,android.widget.TextView)>($r8, $r3, $r1)
+SOURCE:
+	<org.mozilla.gecko.activitystream.homepanel.stream.WebpageItemRow: void updatePageDomain()>
+NO PATH TO SOURCE METHOD FOUND.
+==========================(AsyncTask)==============================
+AsyncTask DECLARED INSIDE UI OBJECT (POTENTIAL LEAK):
+Bytecode instruction:
+	specialinvoke $r6.<org.mozilla.mozstumbler.service.uploadthread.AsyncUploader: void <init>(org.mozilla.mozstumbler.service.uploadthread.AsyncUploader$AsyncUploadArgs,org.mozilla.mozstumbler.service.uploadthread.AsyncUploader$AsyncUploaderListener)>($r4, null)
+SOURCE:
+	<org.mozilla.mozstumbler.service.uploadthread.UploadAlarmReceiver$UploadAlarmService: void upload(boolean)>
+NO PATH TO SOURCE METHOD FOUND.
+==========================(AsyncTask)==============================
+AsyncTask DECLARED INSIDE UI OBJECT (POTENTIAL LEAK):
+Bytecode instruction:
+	specialinvoke $r11.<org.mozilla.gecko.activitystream.homepanel.topsites.TopSitesCard$UpdateCardTitleAsyncTask: void <init>(android.content.Context,java.net.URI,android.widget.TextView)>($r6, $r3, $r9)
+SOURCE:
+	<org.mozilla.gecko.activitystream.homepanel.topsites.TopSitesCard: void setTopSiteTitle(org.mozilla.gecko.activitystream.homepanel.model.TopSite)>
+NO PATH TO SOURCE METHOD FOUND.
+Soot finished on Mon May 04 23:07:34 EDT 2020
+Soot has run for 0 min. 46 sec.
+Number of Thread related bugs: 19
+==========================(Potential Leaks)==============================
+
+Process finished with exit code 0
