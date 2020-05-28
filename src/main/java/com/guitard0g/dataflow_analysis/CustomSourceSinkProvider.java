@@ -1,23 +1,19 @@
 package com.guitard0g.dataflow_analysis;
 
-import fj.Hash;
 import soot.SootField;
 import soot.SootMethod;
-import soot.jimple.infoflow.data.AccessPath;
 import soot.jimple.infoflow.data.SootMethodAndClass;
 import soot.jimple.infoflow.sourcesSinks.definitions.*;
 
-import java.lang.reflect.Array;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
 public class CustomSourceSinkProvider implements ISourceSinkDefinitionProvider {
-    private HashMap<String, ISourceSinkDefinition> sourcesAndSinks;
-    private HashSet<ISourceSinkDefinition> sources;
-    private HashSet<ISourceSinkDefinition> sinks;
-    private HashSet<SootMethod> sourceMethods;
+    private final HashMap<String, ISourceSinkDefinition> sourcesAndSinks;
+    private final HashSet<ISourceSinkDefinition> sources;
+    private final HashSet<ISourceSinkDefinition> sinks;
+    private final HashSet<SootMethod> sourceMethods;
 
     public CustomSourceSinkProvider() {
         sourcesAndSinks = new HashMap<>();
@@ -26,7 +22,14 @@ public class CustomSourceSinkProvider implements ISourceSinkDefinitionProvider {
         sourceMethods = new HashSet<>();
     }
 
+    /**
+     * Add SootMethod as a source
+     *
+     * @param m
+     *          The soot method to add as a source
+     */
     public void addSourceMethod(SootMethod m) {
+        // don't add if this method is not user-written
         if (!isAppMethod(m)) {
             return;
         }
@@ -86,6 +89,12 @@ public class CustomSourceSinkProvider implements ISourceSinkDefinitionProvider {
         sinks.add(def);
     }
 
+    /**
+     * Add SootField as a sink
+     *
+     * @param f
+     *          The soot field to add as a sink
+     */
     public void addSinkField(SootField f) {
         HashSet<AccessPathTuple> aps = new HashSet<>();
         aps.add(AccessPathTuple.getBlankSinkTuple());
@@ -96,11 +105,11 @@ public class CustomSourceSinkProvider implements ISourceSinkDefinitionProvider {
         sinks.add(def);
     }
 
+    // check if this method is in the main app package
     private boolean isAppMethod(SootMethod m) {
         String clsName = m.getDeclaringClass().getName();
-        if (clsName.startsWith(App.appPackage))
-            return true;
-        return false;
+
+        return clsName.startsWith(App.appPackage);
     }
 
     public HashSet<SootMethod> getSourceMethods() {

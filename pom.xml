@@ -56,6 +56,11 @@
       <artifactId>heros</artifactId>
       <version>1.2.0-SNAPSHOT</version>
     </dependency>
+    <dependency>
+      <groupId>edu.psu.cse.siis</groupId>
+      <artifactId>ic3</artifactId>
+      <version>0.2.0</version>
+    </dependency>
   </dependencies>
   <repositories>
     <repository>

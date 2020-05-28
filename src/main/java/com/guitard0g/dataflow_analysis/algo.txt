@@ -1,0 +1,2 @@
+procedure analyze:
+    for all i in I:
