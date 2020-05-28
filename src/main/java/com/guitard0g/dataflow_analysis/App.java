@@ -5,6 +5,7 @@ import org.apache.commons.cli.*;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.xml.sax.helpers.AttributesImpl;
 import org.xmlpull.v1.XmlPullParserException;
 import soot.Scene;
 import soot.SootMethod;
@@ -25,6 +26,7 @@ import java.util.*;
 public class App
 {
     public static String appPackage = "";
+    private static int DEFAULT_TIMEOUT = 3600;
 
     public static void main(String[] args) {
         // get command line arguments
@@ -42,7 +44,7 @@ public class App
         // initialize Soot and construct call graph
         SetupApplication analyzer = new SetupApplication(options.platformPath, options.instrumentedApkPath);
         // set analyzer options
-        configureAnalyzer(analyzer);
+        configureAnalyzer(analyzer, options.timeout_seconds);
 
         // we need the manifest to see what our main app package is.
         // we use the main app package inside of our source/sink provider to prune out non-user functions
@@ -134,6 +136,10 @@ public class App
         apkOpt.setRequired(true);
         options.addOption(apkOpt);
 
+        Option timeoutOpt = new Option("t", "timeout", true, "Timeout in minutes for the dataflow analysis");
+        timeoutOpt.setRequired(false);
+        options.addOption(timeoutOpt);
+
         Option resourceOpt = new Option("r", "resource", false, "flag to switch to system resource analysis");
         options.addOption(resourceOpt);
 
@@ -147,8 +153,11 @@ public class App
             String platformsPath = cmd.getOptionValue("platforms");
             String apkPath = cmd.getOptionValue("apk");
             boolean resourceMode = cmd.hasOption("resource");
+            int timeout = DEFAULT_TIMEOUT;
+            if (cmd.hasOption("timout"))
+                timeout = Integer.parseInt(cmd.getOptionValue("timeout"));
 
-            return new CliOptions(apkPath, platformsPath, resourceMode);
+            return new CliOptions(apkPath, platformsPath, resourceMode, timeout);
         } catch (ParseException e) {
             System.out.println(e.getMessage());
             formatter.printHelp("APK analyzer", options);
@@ -183,7 +192,7 @@ public class App
     /**
      *  Set some necessary analyzer options
      */
-    private static void configureAnalyzer(SetupApplication analyzer) {
+    private static void configureAnalyzer(SetupApplication analyzer, int timeout) {
         // we use this imprecise callgraph algorithm to make sure edges are not pruned out
         analyzer.getConfig().setCallgraphAlgorithm(InfoflowConfiguration.CallgraphAlgorithm.CHA);
         // we need to disable code elimination or else our instrumented functions could disappear
@@ -192,7 +201,7 @@ public class App
         analyzer.getConfig().setFlowSensitiveAliasing(false);
         analyzer.getConfig().setEnableArrayTracking(false);
         // 1 hour timeout
-        analyzer.getConfig().setDataFlowTimeout(3600);
+        analyzer.getConfig().setDataFlowTimeout(timeout);
         // do an initial callgraph construction so that we have access to the functions for our dataflow analyzer setup
         analyzer.constructCallgraph();
     }
@@ -468,8 +477,10 @@ class CliOptions {
     public String instrumentedApkPath;
     public String platformPath;
     public boolean resourceMode;
+    public int timeout_seconds;
+    public int timeout_minutes;
 
-    public CliOptions(String a, String p, boolean r) throws ParseException {
+    public CliOptions(String a, String p, boolean r, int timeout_m) throws ParseException {
         if(!Files.isReadable(Paths.get(a)))
             throw new ParseException("APK file does not exist!");
         if(!Files.isDirectory(Paths.get(p)))
@@ -479,6 +490,8 @@ class CliOptions {
         instrumentedApkPath = buildOutputPath(a);
         platformPath = p;
         resourceMode = r;
+        timeout_minutes = timeout_m;
+        timeout_seconds = timeout_m * 60;
     }
 
     private static String buildOutputPath(String path) {
