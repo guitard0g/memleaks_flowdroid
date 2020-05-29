@@ -5,7 +5,6 @@ import org.apache.commons.cli.*;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.xml.sax.helpers.AttributesImpl;
 import org.xmlpull.v1.XmlPullParserException;
 import soot.Scene;
 import soot.SootMethod;
